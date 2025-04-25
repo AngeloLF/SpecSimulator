@@ -23,14 +23,15 @@ class SpecSimulator():
     * output dir : créer un nouveau repertoire avec un nombre+1 si il existe deja
     """
 
-    def __init__(self, psf_function, var_params, output_dir='./output', output_fold='simulation', input_argv=list(),
+    def __init__(self, psf_function, var_params, output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True):
 
         time_init = time()
 
         # PSF function and output_dir for simulation results.
         self.psf_function = psf_function
-        self.output_dir = output_dir
+        if output_dir not in os.listdir('./..') : os.mkdir(f"./../{output_dir}")
+        self.output_dir = f"./../{output_dir}"
 
         # Parameters define by sys.argv
         self.nb_simu = 1
@@ -55,15 +56,15 @@ class SpecSimulator():
         num = 0
         self.save_fold = output_fold + str(num)
         if not self.isTest:
-            while self.save_fold in os.listdir(output_dir):
+            while self.save_fold in os.listdir(self.output_dir):
                 num += 1
                 self.save_fold = output_fold + str(num)
-        elif self.save_fold in os.listdir(output_dir):
-            shutil.rmtree(f"{output_dir}/{self.save_fold}")
-        print(f"{c.y}Create folder {output_dir}/{self.save_fold}{c.d}")
-        os.mkdir(f"{output_dir}/{self.save_fold}")
-        os.mkdir(f"{output_dir}/{self.save_fold}/spectrum")
-        os.mkdir(f"{output_dir}/{self.save_fold}/image")
+        elif self.save_fold in os.listdir(self.output_dir):
+            shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
+        print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
         
         # Order 0 coord.
         self.R0 = hparameters.R0
