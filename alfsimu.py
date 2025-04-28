@@ -23,7 +23,7 @@ psf_function = {
 var_params = {
 	'arg.0.0' : [2.0, 6.0],
 	'ROTATION_ANGLE' : [-2.0, 2.0],
-	"ATM_AEROSOLS" : [0.1, 0.7],
+	"ATM_AEROSOLS" : [0.01, 0.70],
     "ATM_OZONE" : [250.0, 350.0],
     "ATM_PWV" : [0.0, 15.0],
     "ATM_AIRMASS" : [1.0, 2.5],

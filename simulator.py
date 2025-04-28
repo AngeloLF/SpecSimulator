@@ -34,19 +34,24 @@ class SpecSimulator():
         self.output_dir = f"./../{output_dir}"
 
         # Parameters define by sys.argv
-        self.nb_simu = 1
+        self.nb_simu_base = 1
         self.show_plots = False
         self.show_times = False
         self.show_specs = False
         self.isTest = False
         self.target_set = "set0"
+        self.mode4variable = "rdm"
         for argv in input_argv:
-            if argv[0] == "x" : self.nb_simu = int(argv[1:])
+            if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
             if argv == 'times' : self.show_times = True
             if argv == 'plots' : self.show_plots = True
             if argv == 'specs' : self.show_specs = True
             if argv == 'test'  : self.isTest = True
             if argv[:3] == 'set' : self.target_set = argv
+            if argv in ["rdm", "lsp"] : self.mode4variable = argv
+            if argv[:2] == 'f=' : self.output_fold = argv[2:]
+
+        self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
 
         # Define variables parameters for the simulation
@@ -54,11 +59,11 @@ class SpecSimulator():
 
         # Define output directory
         num = 0
-        self.save_fold = output_fold + str(num)
+        self.save_fold = self.output_fold
         if not self.isTest:
             while self.save_fold in os.listdir(self.output_dir):
                 num += 1
-                self.save_fold = output_fold + str(num)
+                self.save_fold = self.output_fold + "_" + str(num)
         elif self.save_fold in os.listdir(self.output_dir):
             shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
         print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
@@ -129,11 +134,11 @@ class SpecSimulator():
             times.append(time()-t0)
         pbar.close()
 
-        self.json_save(self.all_params, 'all_params')
+        self.json_save(self.historic_params, 'hist_params')
         self.json_save(self.hp_params,  'hparams')
 
-        with open(f"{self.output_dir}/{self.save_fold}/var_buffer.pck", "wb") as f:
-            pickle.dump(self.var_buffer, f)
+        with open(f"{self.output_dir}/{self.save_fold}/variable_params.pck", "wb") as f:
+            pickle.dump(self.variable_params, f)
 
         if self.show_times:
             self.ctt.result()
@@ -174,7 +179,7 @@ class SpecSimulator():
 
                 for i, file in enumerate(files):
 
-                    title = [self.var_buffer['target'][i]] + [f"{var}={self.var_buffer[var][i]:.2f}" for var in self.var_buffer.keys() if var!='target']
+                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET']
 
                     img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
@@ -188,7 +193,7 @@ class SpecSimulator():
 
                 files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
                 for i, file in enumerate(files):
-                    title = [self.var_buffer['target'][i]] + [f"{var}={self.var_buffer[var][i]:.2f}" for var in self.var_buffer.keys() if var!='target' and var[:4]=="ATM_"]
+                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
                     spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
                     plt.plot(self.lambdas, spec, label=', '.join(title))
                 plt.legend()
@@ -199,20 +204,20 @@ class SpecSimulator():
 
         ### set variable params
         self.ctt.o(f"set var params", rank="Full")
-        
-        # set var params
-        for param, rang in self.var_params.items():
-            self.__setattr__(param, np.random.uniform(*rang))
-            self.var_buffer[param][num_simu] = self.__getattribute__(param) 
-        self.target_label = np.random.choice(list(self.targets_spectrum.keys()))
 
-        # set var argument of psf function
-        for param, (num_arg, num_coef, rang) in self.var_arg.items():
-            self.psf_function['arg'][num_arg][num_coef] = np.random.uniform(*rang)
-            self.var_buffer[param][num_simu] = self.psf_function['arg'][num_arg][num_coef]
+        for param in self.variable_params.keys():
 
-        # set target
-        self.var_buffer['target'][num_simu] = self.target_label
+            # set var params
+            if param[:4] != "arg.": 
+
+                self.__setattr__(param, self.variable_params[param][num_simu])
+
+            # set var arg psf
+            else:
+
+                num_arg, num_coef = self.var_arg[param]
+                self.psf_function['arg'][num_arg][num_coef] = self.variable_params[param][num_simu]
+
         self.ctt.c(f"set var params")
 
         # set timbre
@@ -292,7 +297,7 @@ class SpecSimulator():
         self.ctt.c(f"load_atm")
 
         self.ctt.o(f"multiplier", rank="sim spec")
-        spectrum = self.targets_spectrum[self.target_label](self.lambdas)
+        spectrum = self.targets_spectrum[self.TARGET](self.lambdas)
         spectrum *= self.disperser.transmission(self.lambdas)
         spectrum *= self.telescope_transmission(self.lambdas)
         if self.with_atmosphere : spectrum *= self.atm(self.lambdas)
@@ -346,38 +351,65 @@ class SpecSimulator():
 
     def init_var_params(self, var_params):
 
-        self.var_params = dict()
-        self.var_buffer = {'target':np.zeros(self.nb_simu).astype(str)}
-        self.all_params = {'nb_simu':self.nb_simu, 'target_set':hparameters.TARGETS_NAME[self.target_set]}
+        # Pour ce souvenir des paramètres utlisé
+        self.historic_params = {'nb_simu':self.nb_simu, 'target_set':hparameters.TARGETS_NAME[self.target_set], 'mode4variable':self.mode4variable}
 
+        # On calcule les vecteurs pour les paramètres variables
+        if self.mode4variable == 'lsp':
+            # Mode linspace
+            nb_target = len(hparameters.TARGETS_NAME[self.target_set])
+            self.variable_params = {'TARGET' : np.concatenate(np.array([[targ]*self.nb_simu_base for targ in hparameters.TARGETS_NAME[self.target_set]])).astype(str)}
+            func4variable = np.linspace
+        elif self.mode4variable == 'rdm':
+            # Mode random uniform
+            self.variable_params = {'TARGET' : np.random.choice(hparameters.TARGETS_NAME[self.target_set], self.nb_simu)}
+            func4variable = np.random.uniform
+        else:
+            # Mode inexistant
+            func4variable = None
+            print(f"{c.r}WARNING : mode {self.mode4variable} not exist. Should be `rdm` or `lsp`.{c.d}")
+
+        # On parcoure toute les parametres de hparameters qui peuvent etre variable
         for param, value in hparameters.VARIABLE_PARAMS.items():
 
-            if param in var_params:
+            # Les parametres mis en variable dans le dict d'entrée
+            if param in var_params and isinstance(var_params[param], (list)):
 
                 print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
-                self.var_params[param] = var_params[param]
-                self.all_params[param] = var_params[param]
-                self.var_buffer[param] = np.zeros(self.nb_simu)
 
+                self.historic_params[param] = var_params[param]
+                if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu_base) for _ in range(nb_target)])
+                elif self.mode4variable == 'rdm' : self.variable_params[param] = func4variable(*var_params[param], self.nb_simu)
+
+            # Les variables renseigné dans le dict d'entrée mais non variables
+            elif param in var_params and isinstance(var_params[param], (int, float)):
+
+                print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
+                self.historic_params[param] = var_params[param]
+                self.__setattr__(param, var_params[param])
+
+            # Les varaibles non renseigné, on met donc la valeur de défault situé dans hparameters
             else:
 
-                print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d}")
+                print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d} (from hparameters)")
                 self.__setattr__(param, value)
-                self.all_params[param] = value
+                self.historic_params[param] = value
 
-        # arg variation
+        # On s'occupe ici des variation des paramètres de moffat
         var_args = [var for var in var_params if var[:4] == 'arg.']
         self.var_arg = dict()
 
         for param in var_args:
 
-            num_arg, num_coef = param.split('.')[1:]
-            self.var_arg[param] = [int(num_arg), int(num_coef), var_params[param]]
-            self.var_buffer[param] = np.zeros(self.nb_simu)
-            self.all_params[param] = var_params[param]
             print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
 
+            num_arg, num_coef = param.split('.')[1:]
+            self.var_arg[param] = [int(num_arg), int(num_coef)]
+            self.historic_params[param] = var_params[param]
+            if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu) for _ in range(nb_target)])
+            elif self.mode4variable == 'rdm' : self.variable_params[param] = func4variable(*var_params[param], self.nb_simu)            
 
+        # Enfin, on garde en mémoire tout les autres variables présente dans hparameters
         self.hp_params = dict()
 
         for hp in dir(hparameters):

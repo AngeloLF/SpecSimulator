@@ -23,11 +23,11 @@ VARIABLE_PARAMS = {
     "ROTATION_ANGLE" : 0.0,
 
     # For atmoshere
-    "ATM_AEROSOLS" : 0.03, # 0.00 et 1.00
+    "ATM_AEROSOLS" : 0.05, # 0.00 et 1.00
+    "ATM_OZONE" : 300.0, # 250 et 350
+    "ATM_PWV" : 5.0, # 0.0 et 15.0
+    "ATM_AIRMASS" : 1.2, # 1.0 et 2.5
     "ATM_ANGSTROM_EXPONENT" : 1.2,
-    "ATM_OZONE" : 300, # 250 et 350
-    "ATM_PWV" : 5, # 0.0 et 15.0
-    "ATM_AIRMASS" : 1.131, # 1.0 et 2.5
     "ATM_TEMPERATURE" : 8.6,
     "ATM_HUMIDITY" : 25,
 
