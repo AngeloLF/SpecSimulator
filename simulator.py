@@ -1,7 +1,7 @@
 import os, sys, shutil, json, pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from time import time
+from time import time, ctime
 import coloralf as c
 from scipy.interpolate import interp1d
 import astropy.units as u
@@ -23,36 +23,51 @@ class SpecSimulator():
     * output dir : créer un nouveau repertoire avec un nombre+1 si il existe deja
     """
 
-    def __init__(self, psf_function, var_params, output_dir='output_simu', output_fold='simulation', input_argv=list(),
-                    with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True):
+    def __init__(self, psf_function, var_params, output_path='./..', output_dir='output_simu', output_fold='simulation', input_argv=list(),
+                    with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
+                    overwrite=False, show_times=False, show_plots=False, show_specs=False, target_set="set0", mode4variable="rdm", verbose=2):
+
+        """
+        verbose :
+            * 0 pour aucun print, a par la pbar et le nom du folder
+            * 1 pour les print principaux
+            * 2 pour tout les prints
+        """
+
 
         time_init = time()
 
         # PSF function and output_dir for simulation results.
         self.psf_function = psf_function
-        if output_dir not in os.listdir('./..') : os.mkdir(f"./../{output_dir}")
-        self.output_dir = f"./../{output_dir}"
+        if output_dir not in os.listdir(output_path) : os.mkdir(f"{output_path}/{output_dir}")
+        self.output_dir = f"{output_path}/{output_dir}"
 
         # Parameters define by sys.argv
         self.nb_simu_base = 1
-        self.show_plots = False
-        self.show_times = False
-        self.show_specs = False
-        self.isTest = False
-        self.target_set = "set0"
-        self.mode4variable = "rdm"
+        self.show_plots = show_plots
+        self.show_times = show_times
+        self.show_specs = show_specs
+        self.overwrite = overwrite
+        self.target_set = target_set
+        self.mode4variable = mode4variable
+        self.output_fold = output_fold
+        self.verbose = verbose
         for argv in input_argv:
             if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
             if argv == 'times' : self.show_times = True
             if argv == 'plots' : self.show_plots = True
             if argv == 'specs' : self.show_specs = True
-            if argv == 'test'  : self.isTest = True
+            if argv in ['test', 'overwrite', 'ow'] : self.overwrite = True
             if argv[:3] == 'set' : self.target_set = argv
             if argv in ["rdm", "lsp"] : self.mode4variable = argv
             if argv[:2] == 'f=' : self.output_fold = argv[2:]
+            if argv[:2] == 'v=' : self.verbose = int(argv[2:])
 
         self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
+
+        # Initialisation
+        if self.verbose >= 0 : print(f"{c.y}\nInitialisation of SpecSimulator at {c.ly}{c.ti}{ctime()}{c.d}")
 
         # Define variables parameters for the simulation
         self.init_var_params(var_params)
@@ -60,13 +75,14 @@ class SpecSimulator():
         # Define output directory
         num = 0
         self.save_fold = self.output_fold
-        if not self.isTest:
+        if not self.overwrite:
             while self.save_fold in os.listdir(self.output_dir):
                 num += 1
                 self.save_fold = self.output_fold + "_" + str(num)
         elif self.save_fold in os.listdir(self.output_dir):
+            if self.verbose > 0 : print(f"{c.y}Overwriting... delete of {self.output_dir}/{self.save_fold}{c.d}")
             shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
-        print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
+        if self.verbose >= 0 : print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
@@ -107,8 +123,6 @@ class SpecSimulator():
 
         # Loading target spectrum
         self.target_spectrum = self.loading_target_spectrum(hparameters.TARGETS_NAME[self.target_set])
-
-        # Loading Star order 0
         
         # Loading flat
         self.flat = self.loading_flat()
@@ -118,7 +132,7 @@ class SpecSimulator():
 
         # Total time for this initialisation
         total_time = time() - time_init
-        print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
+        if self.verbose > 0 : print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
         
 
 
@@ -144,8 +158,8 @@ class SpecSimulator():
             self.ctt.result()
             nb_train = 50000
             time_per_train = nb_train * (np.sum(times) / self.nb_simu) / 60
-            print(f"{c.lm}\nResult of ctTime with {self.nb_simu} loop : {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms{c.d}") 
-            print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
+            if self.verbose > 0 : print(f"{c.lm}Result of ctTime with {self.nb_simu} loop : {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms{c.d}") 
+            if self.verbose > 1 : print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
 
 
         if self.show_plots:
@@ -375,7 +389,7 @@ class SpecSimulator():
             # Les parametres mis en variable dans le dict d'entrée
             if param in var_params and isinstance(var_params[param], (list)):
 
-                print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+                if self.verbose > 1 : print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
 
                 self.historic_params[param] = var_params[param]
                 if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu_base) for _ in range(nb_target)])
@@ -384,14 +398,14 @@ class SpecSimulator():
             # Les variables renseigné dans le dict d'entrée mais non variables
             elif param in var_params and isinstance(var_params[param], (int, float)):
 
-                print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
+                if self.verbose > 1 : print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
                 self.historic_params[param] = var_params[param]
                 self.__setattr__(param, var_params[param])
 
             # Les varaibles non renseigné, on met donc la valeur de défault situé dans hparameters
             else:
 
-                print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d} (from hparameters)")
+                # print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d} (from hparameters)")
                 self.__setattr__(param, value)
                 self.historic_params[param] = value
 
@@ -401,7 +415,7 @@ class SpecSimulator():
 
         for param in var_args:
 
-            print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+            if self.verbose > 1 : print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
 
             num_arg, num_coef = param.split('.')[1:]
             self.var_arg[param] = [int(num_arg), int(num_coef)]
@@ -447,8 +461,9 @@ class SpecSimulator():
 
         self.targets_spectrum = dict()
 
-        sys.stdout.write(f"Loading targets spectrum : ")
-        sys.stdout.flush()
+        if self.verbose > 1 : 
+            sys.stdout.write(f"Loading targets spectrum : ")
+            sys.stdout.flush()
 
         for target in targets:
 
@@ -472,10 +487,11 @@ class SpecSimulator():
             sed = interp1d(wavelengths, spectra, kind='linear', bounds_error=False, fill_value=0.)
 
             self.targets_spectrum[target] = sed
-            sys.stdout.write(f"{c.g}{target}{c.d}, ")
-            sys.stdout.flush()
+            if self.verbose > 1 :
+                sys.stdout.write(f"{c.g}{target}{c.d}, ")
+                sys.stdout.flush()
 
-        print(f" ... ok")
+        if self.verbose > 1 : print(f" ... ok")
 
 
 

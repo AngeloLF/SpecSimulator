@@ -130,14 +130,12 @@ class ctTime():
 
     def result(self):
 
-
-
         self.total.append(time() - self.begin)
         self.t = np.sum(self.total)
         self.nbLoop += 1
         
         if self.unit is None : self.defineUnit(np.mean(self.total))
-        print(f"{c.lm}\nResult of ctTime with {self.nbLoop} loop : {self.time2str(self.total)}{c.d}")
+        print(f"{c.lm}Result of ctTime with {self.nbLoop} loop : {self.time2str(self.total)}{c.d}")
         print(f"{c.m}Total selfTime   : {self.selfTime*1e3:.2f} ms / {self.selfTime*1e3/self.nbLoop:.2f} ms per loop{c.d}")
 
         if self.verbose:
@@ -155,7 +153,7 @@ class ctTime():
 
 def delete_ctt(file):
 
-    print(f"{c.y}Re-write {file}.py to {file}_true.py{c.d}")
+    # print(f"{c.y}Re-write {file}.py to {file}_true.py{c.d}")
 
     with open(f"{file}.py", "r") as f:
 

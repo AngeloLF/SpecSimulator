@@ -20,15 +20,20 @@ psf_function = {
 	'timbre' : pf.moffat2d_timbre,
 }
 
-var_params = {
-	'arg.0.0' : [2.0, 6.0],
-	'ROTATION_ANGLE' : [-2.0, 2.0],
-	"ATM_AEROSOLS" : [0.01, 0.70],
-    "ATM_OZONE" : [250.0, 350.0],
+var_params_atm = {
+	"ATM_AEROSOLS" : [0.0, 0.8],
+    "ATM_OZONE" : [225.0, 375.0],
     "ATM_PWV" : [0.0, 15.0],
     "ATM_AIRMASS" : [1.0, 2.5],
-    "A" : [0.8, 1.2],
 }
+
+var_params = {
+	'arg.0.0' : [2.0, 8.0],
+	'ROTATION_ANGLE' : [-3.0, 3.0],
+	"A" : [0.6, 1.4],
+}
+
+full_var = {**var_params_atm, **var_params}
 
 
 if "tsim" in sys.argv:
@@ -41,5 +46,19 @@ else:
 	from simulator import SpecSimulator
 
 
-sim = SpecSimulator(psf_function, var_params, input_argv=sys.argv[1:], with_noise=True)
-sim.run()
+if "lsp" not in sys.argv:
+
+	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=True, output_dir="output_simu", output_fold=f"simulation")
+	sim.run()
+
+else:
+
+	for noisy, output_dir in [(False, "output_test"), (True,"output_test_noisy")]:
+
+		for param, rang in full_var.items():
+
+			sim = SpecSimulator(psf_function, {param:rang}, input_argv=sys.argv[1:], with_noise=noisy, output_dir=output_dir, output_fold=f"test_{param}", overwrite=True)
+			sim.run()
+
+		sim = SpecSimulator(psf_function, var_params_atm, input_argv=sys.argv[1:], with_noise=noisy, output_dir=output_dir, output_fold=f"test_atm", overwrite=True)
+		sim.run()
