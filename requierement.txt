@@ -6,4 +6,3 @@ tqdm
 coloralf
 numba
 getCalspec
-getObsAtmo
