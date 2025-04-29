@@ -77,7 +77,7 @@ SPECTRACTOR_ATMOSPHERE_SIM = "getobsatmo"
 # ADR_PARAMS = [-18.6, 28.2, TEMPERATURE, PRESSURE, HUMIDITY, AIRMASS] 
 
 # Disperser characteristics
-DISPERSER_DIR = "./datafile/dispersers"
+DISPERSER_DIR = "./SpecSimulator/datafile/dispersers"
 DISPERSER = "HoloAmAg"
 
 # CCD characteristics
@@ -90,7 +90,7 @@ CCD_GAIN = 3.  # electronic gain : elec/ADU
 CCD_REBIN = 1  # rebinning of the image in pixel
 
 # Instrument characteristics
-THROUGHPUT_DIR = "./datafile/throughput"
+THROUGHPUT_DIR = "./SpecSimulator/datafile/throughput"
 THROUGHPUT = "CTIOThroughput/ctio_throughput_300517_v1.txt"
 OBS_NAME = 'CTIO'
 OBS_ALTITUDE = 2.200  # CTIO altitude in k meters from astropy package (Cerro Pachon)
