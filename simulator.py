@@ -9,6 +9,7 @@ from getCalspec import getCalspec
 from tqdm import tqdm
 
 from ctTime import ctTime
+from alfLogger import ALFLogger
 from adr import adr_calib
 import hparameters
 
@@ -25,7 +26,7 @@ class SpecSimulator():
 
     def __init__(self, psf_function, var_params, output_path='./..', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
-                    overwrite=False, show_times=False, show_plots=False, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2):
+                    overwrite=False, show_times=True, show_plots=False, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2):
 
         """
         verbose :
@@ -36,6 +37,7 @@ class SpecSimulator():
 
 
         time_init = time()
+        self.logger = ALFLogger(jobID="SpecSimulation", output_path=f"{output_path}")
 
         # PSF function and output_dir for simulation results.
         self.psf_function = psf_function
@@ -67,7 +69,9 @@ class SpecSimulator():
         self.len_simu = len(str(self.nb_simu-1))
 
         # Initialisation
-        if self.verbose >= 0 : print(f"{c.y}\nInitialisation of SpecSimulator at {c.ly}{c.ti}{ctime()}{c.d}")
+        if self.verbose >= 0: 
+            print(f"{c.y}\nInitialisation of SpecSimulator at {c.ly}{c.ti}{ctime()}{c.d}")
+            self.logger.log(f"Initialisation of SpecSimulator at {ctime()}")
 
         # Define variables parameters for the simulation
         self.init_var_params(var_params)
@@ -80,9 +84,13 @@ class SpecSimulator():
                 num += 1
                 self.save_fold = self.output_fold + "_" + str(num)
         elif self.save_fold in os.listdir(self.output_dir):
-            if self.verbose > 0 : print(f"{c.y}Overwriting... delete of {self.output_dir}/{self.save_fold}{c.d}")
+            if self.verbose > 0: 
+                print(f"{c.y}Overwriting... delete of {self.output_dir}/{self.save_fold}{c.d}")
+                self.logger.log(f"Overwriting... delete of {self.output_dir}/{self.save_fold}")
             shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
-        if self.verbose >= 0 : print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
+        if self.verbose >= 0: 
+            print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
+            self.logger.log(f"Create folder {self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
@@ -132,8 +140,9 @@ class SpecSimulator():
 
         # Total time for this initialisation
         total_time = time() - time_init
-        if self.verbose > 0 : print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
-        
+        if self.verbose > 0:
+            print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
+            self.logger.log(f"Initialisation of SpecSimulator : {total_time:.2f} s.")
 
 
     def run(self):
@@ -158,8 +167,12 @@ class SpecSimulator():
             self.ctt.result()
             nb_train = 50000
             time_per_train = nb_train * (np.sum(times) / self.nb_simu) / 60
-            if self.verbose > 0 : print(f"{c.lm}Result of ctTime with {self.nb_simu} loop : {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms{c.d}") 
-            if self.verbose > 1 : print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
+            if self.verbose > 0: 
+                print(f"{c.lm}Result of ctTime with {self.nb_simu} loop : {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms{c.d}") 
+                self.logger.log(f"Result of ctTime with {self.nb_simu} loop : {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms")
+            if self.verbose > 1:
+                print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
+                self.logger.log(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
 
 
         if self.show_specs:
@@ -359,6 +372,7 @@ class SpecSimulator():
             # Mode inexistant
             func4variable = None
             print(f"{c.r}WARNING : mode {self.mode4variable} not exist. Should be `rdm` or `lsp`.{c.d}")
+            self.logger.log(f"WARNING : mode {self.mode4variable} not exist. Should be `rdm` or `lsp`.")
 
         # On parcoure toute les parametres de hparameters qui peuvent etre variable
         for param, value in hparameters.VARIABLE_PARAMS.items():
@@ -366,7 +380,9 @@ class SpecSimulator():
             # Les parametres mis en variable dans le dict d'entrée
             if param in var_params and isinstance(var_params[param], (list)):
 
-                if self.verbose > 1 : print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+                if self.verbose > 1: 
+                    print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+                    self.logger.log(f"Set var param {param} to range {var_params[param]}")
 
                 self.historic_params[param] = var_params[param]
                 if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu_base) for _ in range(nb_target)])
@@ -375,14 +391,15 @@ class SpecSimulator():
             # Les variables renseigné dans le dict d'entrée mais non variables
             elif param in var_params and isinstance(var_params[param], (int, float)):
 
-                if self.verbose > 1 : print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
+                if self.verbose > 1: 
+                    print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
+                    self.logger.log(f"Set fix param {param} to {var_params[param]} (from var_params)")
                 self.historic_params[param] = var_params[param]
                 self.__setattr__(param, var_params[param])
 
             # Les varaibles non renseigné, on met donc la valeur de défault situé dans hparameters
             else:
 
-                # print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d} (from hparameters)")
                 self.__setattr__(param, value)
                 self.historic_params[param] = value
 
@@ -392,7 +409,9 @@ class SpecSimulator():
 
         for param in var_args:
 
-            if self.verbose > 1 : print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+            if self.verbose > 1: 
+                print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+                self.logger.log(f"Set var argu. {param} to range {var_params[param]}")
 
             num_arg, num_coef = param.split('.')[1:]
             self.var_arg[param] = [int(num_arg), int(num_coef)]
@@ -441,6 +460,7 @@ class SpecSimulator():
         if self.verbose > 1 : 
             sys.stdout.write(f"Loading targets spectrum : ")
             sys.stdout.flush()
+            self.logger.log(f"Loading targets spectrum : ")
 
         for target in targets:
 
@@ -459,6 +479,7 @@ class SpecSimulator():
             else:
 
                 print(f"{c.r}WARNING : label {target} for loading spectrum is not avaible ...{c.d}")
+                self.logger.log(f"WARNING : label {target} for loading spectrum is not avaible ...")
                 wavelengths, spectra = None, None
 
             sed = interp1d(wavelengths, spectra, kind='linear', bounds_error=False, fill_value=0.)
@@ -467,9 +488,11 @@ class SpecSimulator():
             if self.verbose > 1 :
                 sys.stdout.write(f"{c.g}{target}{c.d}, ")
                 sys.stdout.flush()
+                self.logger.w[-1] += f"{target}, "
 
-        if self.verbose > 1 : print(f" ... ok")
-
+        if self.verbose > 1:
+            print(f" ... ok")
+            self.logger.w[-1] += f" ... ok"
 
 
     def giveTr(self, order=1):
