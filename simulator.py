@@ -20,7 +20,7 @@ if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getOb
 class SpecSimulator():
 
     """
-    * output dir : créer un nouveau repertoire avec un nombre+1 si il existe deja
+    ---
     """
 
     def __init__(self, psf_function, var_params, output_path='./..', output_dir='output_simu', output_fold='simulation', input_argv=list(),

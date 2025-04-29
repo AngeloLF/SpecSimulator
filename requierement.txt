@@ -1,0 +1,9 @@
+astropy
+scipy
+numpy
+matplotlib
+tqdm
+json
+coloralf
+numba
+getCalspec
