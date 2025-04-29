@@ -20,12 +20,12 @@ if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getOb
 class SpecSimulator():
 
     """
-    * output dir : créer un nouveau repertoire avec un nombre+1 si il existe deja
+    ---
     """
 
     def __init__(self, psf_function, var_params, output_path='./..', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
-                    overwrite=False, show_times=False, show_plots=False, show_specs=False, target_set="set0", mode4variable="rdm", verbose=2):
+                    overwrite=False, show_times=False, show_plots=False, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2):
 
         """
         verbose :
@@ -159,56 +159,33 @@ class SpecSimulator():
             if self.verbose > 1 : print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
 
 
-        if self.show_plots:
-
-            fig, axes = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 1]})
-
-            color = 'tab:red'
-            axes[0].set_xlabel(f'$\lambda$ (nm)')
-            axes[0].set_ylabel('Spectrum', color=color)
-            axes[0].plot(self.lambdas, spectrum, color=color)
-            axes[0].tick_params(axis='y', labelcolor=color)
-
-            ax2 = axes[0].twinx()
-            color = 'tab:blue'
-            ax2.set_ylabel('np sum', color=color)
-            ax2.plot(np.log(np.sum(image, axis=0)+1), color=color)
-            ax2.tick_params(axis='y', labelcolor=color)
-
-            axes[1].imshow(np.log(image+1), cmap='gray', origin='lower')
-            axes[1].set_title(f'Image in {np.mean(times)*1e3:.1f} ~ {np.std(times)*1e3:.1f} ms')
-            axes[1].axis('off')
-
-            plt.show()
-
-
         if self.show_specs:
 
             if self.nb_simu >= 10:
 
+                plt.figure(figsize=(16, 12))
                 files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:10]
 
                 for i, file in enumerate(files):
-
-                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET']
-
                     img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
                     plt.subplot(5, 2, i+1)
                     plt.imshow(np.log(img+1), cmap='gray', origin='lower')
-                    plt.title(', '.join(title))
+                    plt.title(self.variable_params['TARGET'][i])
                     plt.axis('off')
 
-                plt.show()
+                plt.savefig("datafile/images.png")
+                plt.close()
 
-
+                plt.figure(figsize=(24, 12))
                 files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
                 for i, file in enumerate(files):
                     title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
                     spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
                     plt.plot(self.lambdas, spec, label=', '.join(title))
                 plt.legend()
-                plt.show()
+                plt.savefig("datafile/specs.png")
+                plt.close()
 
 
     def makeSim(self, num_simu):
