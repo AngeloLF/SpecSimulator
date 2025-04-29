@@ -24,7 +24,7 @@ class SpecSimulator():
     ---
     """
 
-    def __init__(self, psf_function, var_params, output_path='./..', output_dir='output_simu', output_fold='simulation', input_argv=list(),
+    def __init__(self, psf_function, var_params, output_path='.', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
                     overwrite=False, show_times=True, show_plots=False, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2):
 
@@ -43,6 +43,7 @@ class SpecSimulator():
         self.psf_function = psf_function
         if output_dir not in os.listdir(output_path) : os.mkdir(f"{output_path}/{output_dir}")
         self.output_dir = f"{output_path}/{output_dir}"
+        if "divers" not in os.listdir(f"{self.output_dir}") : os.mkdir(f"{self.output_dir}/divers")
 
         # Parameters define by sys.argv
         self.nb_simu_base = 1
@@ -101,7 +102,7 @@ class SpecSimulator():
         # Simulation size
         self.Nx = hparameters.SIM_NX
         self.Ny = hparameters.SIM_NY
-        self.yy, self.xx = np.mgrid[:self.Ny, :self.Nx]
+        self.yy, self.xx = np.mgrid[:self.Ny, :self.Nx].astype(np.int32)
         self.pixels = np.asarray([self.xx, self.yy])
 
         # Class ctTime, for detailled execution time
@@ -190,7 +191,7 @@ class SpecSimulator():
                     plt.title(self.variable_params['TARGET'][i])
                     plt.axis('off')
 
-                plt.savefig("datafile/images.png")
+                plt.savefig(f"{self.output_dir}/divers/images.png")
                 plt.close()
 
                 plt.figure(figsize=(24, 12))
@@ -200,7 +201,7 @@ class SpecSimulator():
                     spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
                     plt.plot(self.lambdas, spec, label=', '.join(title))
                 plt.legend()
-                plt.savefig("datafile/specs.png")
+                plt.savefig(f"{self.output_dir}/divers/specs.png")
                 plt.close()
 
 

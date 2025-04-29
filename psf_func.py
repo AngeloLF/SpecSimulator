@@ -30,7 +30,6 @@ def moffat2d(x, y, amplitude, x_c, y_c, gamma, alpha):
 
 
 @njit(["float32[:,:](int32[:,:], int32[:,:], float32, float32, float32, float32, float32)",
-       "float64[:,:](int32[:,:], int32[:,:], float64, float64, float64, float64, float64)",
        "float32[:,:](float32[:,:], float32[:,:], float32, float32, float32, float32, float32)"], fastmath=True, cache=True)
 def moffat2d_jit(x, y, amplitude, x_c, y_c, gamma, alpha):
 
