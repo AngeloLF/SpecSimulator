@@ -153,9 +153,9 @@ class ctTime():
 
 def delete_ctt(file):
 
-    # print(f"{c.y}Re-write {file}.py to {file}_true.py{c.d}")
+    print(f"{c.y}Re-write {file}.py to {file}_true.py{c.d}")
 
-    with open(f"{file}.py", "r") as f:
+    with open(f"./SpecSimulator/{file}.py", "r") as f:
 
         lines = f.read().split("\n")
 
@@ -173,7 +173,7 @@ def delete_ctt(file):
 
             newPy.append(line)
 
-    with open(f"{file}_true.py", "w") as f:
+    with open(f"./SpecSimulator/{file}_true.py", "w") as f:
         f.write("\n".join(newPy))
 
 
