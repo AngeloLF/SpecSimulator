@@ -1,6 +1,8 @@
 import sys
-import psf_func as pf
-from ctTime import delete_ctt
+import utils_spec.psf_func as pf
+from utils_spec.ctTime import delete_ctt
+
+
 
 psf_function = {
 	# For l lambdas in nm :
@@ -19,6 +21,8 @@ psf_function = {
 	# timbre size function
 	'timbre' : pf.moffat2d_timbre,
 }
+
+
 
 var_params_atm = {
 	"ATM_AEROSOLS" : [0.0, 0.8],
@@ -46,8 +50,8 @@ else:
 	from simulator import SpecSimulator
 
 
-if "lsp" not in sys.argv:
-
+if "test" not in sys.argv:
+	
 	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=True, output_dir="output_simu", output_fold=f"simulation")
 	sim.run()
 

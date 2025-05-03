@@ -1,21 +1,21 @@
 import os, sys, shutil, json, pickle
 import numpy as np
 import matplotlib.pyplot as plt
-from time import time, ctime
 import coloralf as c
-from scipy.interpolate import interp1d
 import astropy.units as u
+from scipy.interpolate import interp1d
+from time import time, ctime
 from getCalspec import getCalspec
 from tqdm import tqdm
 
-from ctTime import ctTime
-from alfLogger import ALFLogger
-from adr import adr_calib
+from utils_spec.ctTime import ctTime
+from utils_spec.alfLogger import ALFLogger
+from utils_spec.adr import adr_calib
+from utils_spec.load_disperser import MyDisperser
+
 import hparameters
-
-from load_disperser import MyDisperser
-
 if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getObsAtmo
+
 
 
 class SpecSimulator():
@@ -26,7 +26,8 @@ class SpecSimulator():
 
     def __init__(self, psf_function, var_params, output_path='.', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
-                    overwrite=False, show_times=True, show_plots=False, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2):
+                    overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
+                    nb_simu=10):
 
         """
         verbose :
@@ -46,8 +47,7 @@ class SpecSimulator():
         if "divers" not in os.listdir(f"{self.output_dir}") : os.mkdir(f"{self.output_dir}/divers")
 
         # Parameters define by sys.argv
-        self.nb_simu_base = 1
-        self.show_plots = show_plots
+        self.nb_simu_base = nb_simu
         self.show_times = show_times
         self.show_specs = show_specs
         self.overwrite = overwrite
@@ -57,10 +57,9 @@ class SpecSimulator():
         self.verbose = verbose
         for argv in input_argv:
             if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
-            if argv == 'times' : self.show_times = True
-            if argv == 'plots' : self.show_plots = True
-            if argv == 'specs' : self.show_specs = True
-            if argv in ['test', 'overwrite', 'ow'] : self.overwrite = True
+            if argv[1:] == 'times' : self.show_times = True if argv[0] == '+' else False
+            if argv[1:] == 'specs' : self.show_specs = True if argv[0] == '+' else False
+            if argv[1:] in ['overwrite', 'ow'] : self.overwrite = True if argv[0] == '+' else False
             if argv[:3] == 'set' : self.target_set = argv
             if argv in ["rdm", "lsp"] : self.mode4variable = argv
             if argv[:2] == 'f=' : self.output_fold = argv[2:]

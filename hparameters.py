@@ -2,13 +2,9 @@ import numpy as np
 
 
 def __getattr__(name):
-    """
 
-    """
-    if name in locals():
-        return locals()[name]
-    else:
-        raise ValueError(f"hparameters dont have {name=}.")
+    if name in locals() : return locals()[name]
+    else : raise ValueError(f"hparameters dont have {name=}.")
 
 VARIABLE_PARAMS = {
 
