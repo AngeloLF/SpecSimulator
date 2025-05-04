@@ -229,7 +229,7 @@ class SpecSimulator():
         self.ctt.c(f"Init simulate")
         
         self.ctt.o(f"Construction spectrum", rank="BlankS")
-        spectrum = self.simulate_spectrum()
+        spectrum = self.simulate_spectrum() * self.A
         self.ctt.c(f"Construction spectrum")
 
         for order, (tr, A) in self.order2make.items():
@@ -237,7 +237,7 @@ class SpecSimulator():
             # Dispersion law
             self.ctt.o(f"Compute dispersion & params", rank="BlankS")
             adr_x, adr_y = self.loading_adr()
-            Amp = A * tr(self.lambdas) * spectrum * self.A
+            Amp = A * tr(self.lambdas) * spectrum
             X_c = self.disperser.dist_along_disp_axis[order] * np.cos(self.ROTATION_ANGLE * np.pi / 180) + adr_x + self.R0[0]
             Y_c = self.disperser.dist_along_disp_axis[order] * np.sin(self.ROTATION_ANGLE * np.pi / 180) + adr_y + self.R0[1]
             self.ctt.c(f"Compute dispersion & params")
