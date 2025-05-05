@@ -23,7 +23,7 @@ class SpecSimulator():
     ---
     """
 
-    def __init__(self, psf_function, var_params, output_path='.', output_dir='output_simu', output_fold='simulation', input_argv=list(),
+    def __init__(self, psf_function, var_params, output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
                     overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
                     nb_simu=10):
