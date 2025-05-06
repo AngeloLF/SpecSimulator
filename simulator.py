@@ -68,7 +68,7 @@ class SpecSimulator():
 
         # Initialisation
         if self.verbose >= 0: 
-            print(f"{c.y}\nInitialisation of SpecSimulator at {c.ly}{c.ti}{ctime()}{c.d}")
+            print(f"{c.y}\nInitialisation of SpecSimulator at {c.d}{c.ly}{c.ti}{ctime()}{c.d}{c.d}")
 
         # Define variables parameters for the simulation
         self.init_var_params(var_params)

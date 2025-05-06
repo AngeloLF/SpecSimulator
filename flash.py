@@ -53,8 +53,8 @@ def make_simu(sim, ax, ax_spec, ax_img, ax_labels):
 
     sim.makeSim(0)
 
-    spectrum = np.load(f"./output_simu/flash/spectrum/spectrum_0.npy")
-    image = np.load(f"./output_simu/flash/image/image_0.npy")
+    spectrum = np.load(f"./results/output_simu/flash/spectrum/spectrum_0.npy")
+    image = np.load(f"./results/output_simu/flash/image/image_0.npy")
 
     ax_spec.set_ydata(spectrum)
     ax_img.set_data(np.log10(image+1))
@@ -206,8 +206,8 @@ if __name__ == "__main__":
         "ATM_AIRMASS" : ax[0].scatter([], [], marker='*', label=f"AIRMASS = {sim.__getattribute__(f'ATM_AIRMASS'):.2f}"),
     }
 
-    spectrum = np.load(f"./output_simu/flash/spectrum/spectrum_0.npy")
-    image = np.load(f"./output_simu/flash/image/image_0.npy")
+    spectrum = np.load(f"./results/output_simu/flash/spectrum/spectrum_0.npy")
+    image = np.load(f"./results/output_simu/flash/image/image_0.npy")
     
     ax_spec, = ax[0].plot(xl, spectrum, color='k')
     ax_img = ax[1].imshow(np.log10(image+1), cmap='gray')

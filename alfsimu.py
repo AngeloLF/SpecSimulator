@@ -51,8 +51,10 @@ else:
 
 
 if "test" not in sys.argv:
+
+	noisy = False if "noisyless" in sys.argv else True 
 	
-	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=True, output_dir="output_simu", output_fold=f"simulation")
+	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_simu", output_fold=f"simulation")
 	sim.run()
 
 else:
