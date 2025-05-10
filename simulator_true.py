@@ -68,7 +68,7 @@ class SpecSimulator():
 
         # Initialisation
         if self.verbose >= 0: 
-            print(f"{c.y}\nInitialisation of SpecSimulator at {c.ly}{c.ti}{ctime()}{c.d}")
+            print(f"{c.y}\nInitialisation of SpecSimulator at {c.d}{c.ly}{c.ti}{ctime()}{c.d}{c.d}")
 
         # Define variables parameters for the simulation
         self.init_var_params(var_params)
@@ -119,6 +119,7 @@ class SpecSimulator():
         self.with_flat = with_flat
         self.with_convertADU = with_convertADU
         self.with_noise = with_noise
+        print(f"<ith noise : {self.with_noise}")
 
         # Loading telescope transmission
         self.telescope_transmission = self.loading_tel_transmission()

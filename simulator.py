@@ -120,6 +120,7 @@ class SpecSimulator():
         self.with_flat = with_flat
         self.with_convertADU = with_convertADU
         self.with_noise = with_noise
+        print(f"<ith noise : {self.with_noise}")
 
         # Loading telescope transmission
         self.telescope_transmission = self.loading_tel_transmission()

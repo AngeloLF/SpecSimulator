@@ -50,21 +50,19 @@ else:
 	from simulator import SpecSimulator
 
 
+noisy = False if "noisyless" in sys.argv else True 
+
 if "test" not in sys.argv:
 
-	noisy = False if "noisyless" in sys.argv else True 
-	
 	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_simu", output_fold=f"simulation")
 	sim.run()
 
 else:
 
-	for noisy, output_dir in [(False, "output_test"), (True,"output_test_noisy")]:
+	for param, rang in full_var.items():
 
-		for param, rang in full_var.items():
-
-			sim = SpecSimulator(psf_function, {param:rang}, input_argv=sys.argv[1:], with_noise=noisy, output_dir=output_dir, output_fold=f"test_{param}", overwrite=True)
-			sim.run()
-
-		sim = SpecSimulator(psf_function, var_params_atm, input_argv=sys.argv[1:], with_noise=noisy, output_dir=output_dir, output_fold=f"test_atm", overwrite=True)
+		sim = SpecSimulator(psf_function, {param:rang}, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_{param}", overwrite=True)
 		sim.run()
+
+	sim = SpecSimulator(psf_function, var_params_atm, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_atm", overwrite=True)
+	sim.run()
