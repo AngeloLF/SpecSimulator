@@ -30,7 +30,7 @@ var_params_atm = {
 		"ATM_OZONE" : [250.0, 350.0],
 		"ATM_PWV" : [0.0, 10.0],
 		"ATM_AIRMASS" : [1.2, 2.0]
-	}
+	},
 	"test" : {
 		"ATM_AEROSOLS" : [0.0, 0.9],
 		"ATM_OZONE" : [220.0, 380.0],
@@ -44,7 +44,7 @@ var_params = {
 		'arg.0.0' : [3.0, 8.0],
 		'ROTATION_ANGLE' : [-2.0, 2.0],
 		"A" : [0.8, 1.2],
-	}
+	},
 	"test" : {
 		'arg.0.0' : [2.0, 10.0],
 		'ROTATION_ANGLE' : [-3.0, 3.0],
