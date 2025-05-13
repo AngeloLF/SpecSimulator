@@ -25,19 +25,35 @@ psf_function = {
 
 
 var_params_atm = {
-	"ATM_AEROSOLS" : [0.0, 0.8],
-    "ATM_OZONE" : [225.0, 375.0],
-    "ATM_PWV" : [0.0, 15.0],
-    "ATM_AIRMASS" : [1.0, 2.5],
+	"train" : {
+		"ATM_AEROSOLS" : [0.1, 0.8],
+		"ATM_OZONE" : [250.0, 350.0],
+		"ATM_PWV" : [0.0, 10.0],
+		"ATM_AIRMASS" : [1.2, 2.0]
+	}
+	"test" : {
+		"ATM_AEROSOLS" : [0.0, 0.9],
+		"ATM_OZONE" : [220.0, 380.0],
+		"ATM_PWV" : [0.0, 15.0],
+		"ATM_AIRMASS" : [1.0, 2.5]
+	}
 }
 
 var_params = {
-	'arg.0.0' : [2.0, 8.0],
-	'ROTATION_ANGLE' : [-3.0, 3.0],
-	"A" : [0.6, 1.4],
+	"train" : {
+		'arg.0.0' : [3.0, 8.0],
+		'ROTATION_ANGLE' : [-2.0, 2.0],
+		"A" : [0.8, 1.2],
+	}
+	"test" : {
+		'arg.0.0' : [2.0, 10.0],
+		'ROTATION_ANGLE' : [-3.0, 3.0],
+		"A" : [0.6, 1.4],
+	}
 }
 
-full_var = {**var_params_atm, **var_params}
+full_var_train = {**var_params_atm["train"], **var_params["train"]}
+full_var_test = {**var_params_atm["test"], **var_params["test"]}
 
 
 if "tsim" in sys.argv:
@@ -54,15 +70,22 @@ noisy = False if "noisyless" in sys.argv else True
 
 if "test" not in sys.argv:
 
-	sim = SpecSimulator(psf_function, full_var, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_simu", output_fold=f"simulation")
+	sim = SpecSimulator(psf_function, full_var_train, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_simu", output_fold=f"simulation")
 	sim.run()
 
 else:
 
-	for param, rang in full_var.items():
+	if "lsp" not in sys.argv:
 
-		sim = SpecSimulator(psf_function, {param:rang}, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_{param}", overwrite=True)
+		sim = SpecSimulator(psf_function, full_var_test, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_simu", output_fold=f"simulation")
 		sim.run()
 
-	sim = SpecSimulator(psf_function, var_params_atm, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_atm", overwrite=True)
-	sim.run()
+	else:
+
+		for param, rang in full_var_test.items():
+
+			sim = SpecSimulator(psf_function, {param:rang}, input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_{param}", overwrite=True)
+			sim.run()
+
+		sim = SpecSimulator(psf_function, var_params_atm["test"], input_argv=sys.argv[1:], with_noise=noisy, output_dir="output_test", output_fold=f"test_atm", overwrite=True)
+		sim.run()
