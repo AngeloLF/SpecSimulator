@@ -42,7 +42,6 @@ class SpecSimulator():
         self.psf_function = psf_function
         if output_dir not in os.listdir(output_path) : os.mkdir(f"{output_path}/{output_dir}")
         self.output_dir = f"{output_path}/{output_dir}"
-        if "divers" not in os.listdir(f"{self.output_dir}") : os.mkdir(f"{self.output_dir}/divers")
 
         # Parameters define by sys.argv
         self.nb_simu_base = nb_simu
@@ -89,6 +88,7 @@ class SpecSimulator():
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
         # Order 0 coord.
         self.R0 = hparameters.R0
@@ -180,7 +180,7 @@ class SpecSimulator():
                     plt.title(self.variable_params['TARGET'][i])
                     plt.axis('off')
 
-                plt.savefig(f"{self.output_dir}/divers/images.png")
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
                 plt.close()
 
                 plt.figure(figsize=(24, 12))
@@ -190,7 +190,7 @@ class SpecSimulator():
                     spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
                     plt.plot(self.lambdas, spec, label=', '.join(title))
                 plt.legend()
-                plt.savefig(f"{self.output_dir}/divers/specs.png")
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/specs.png")
                 plt.close()
 
 
