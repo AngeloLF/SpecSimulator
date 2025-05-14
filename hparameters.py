@@ -74,7 +74,7 @@ SPECTRACTOR_ATMOSPHERE_SIM = "getobsatmo"
 
 # Disperser characteristics
 DISPERSER_DIR = "./SpecSimulator/datafile/dispersers"
-DISPERSER = "HoloAmAg"
+DISPERSER = "HoloAmAg" # HoloAmAg - HoloPhP
 
 # CCD characteristics
 CCD_IMSIZE = 2048  # size of the image in pixel
