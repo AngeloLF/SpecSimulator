@@ -61,7 +61,7 @@ class SpecSimulator():
             if argv in ["rdm", "lsp"] : self.mode4variable = argv
             if argv[:2] == 'f=' : self.output_fold = argv[2:]
             if argv[:2] == 'v=' : self.verbose = int(argv[2:])
-            if argv[:5] == 'disp=' : self.disperser = argv[5:]
+            if argv[:5] == 'disp=' : disperser = argv[5:]
 
         self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
