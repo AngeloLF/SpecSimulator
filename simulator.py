@@ -143,6 +143,13 @@ class SpecSimulator():
             print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
 
 
+    def set_new_disperser(self, disperser_name):
+
+        self.disperser = MyDisperser(disperser_name, self.As, self.lambdas, self.R0)
+        self.tr = [None] + self.giveTr()
+        self.order2make = {order:[tr, A] for order, (tr, A) in enumerate(zip(self.tr, self.As)) if tr is not None and A != 0.0}
+
+
     def run(self):
 
         times = list()

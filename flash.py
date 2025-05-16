@@ -99,7 +99,7 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
 
     for key, (var_name, _, (vmin, vmax, step)) in key2var.items():
 
-        if key in ckeys and key not in ["t"]:
+        if key in ckeys and key not in ["t", "d"]:
 
             if key != "g" : current_val = sim.__getattribute__(var_name)
             else : current_val = sim.psf_function['arg'][0][0]
@@ -126,6 +126,16 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
 
             sim.__setattr__("TARGET", key2var["t"][2][1][new_val])
             print(f"{c.y}Change {var_name} : {key2var['t'][2][1][new_val]} [{new_val}]{c.d}")
+            any_change = True
+
+        elif key in ckeys and key == "d":
+
+            new_val = key2var["d"][2][0] + step if ope == "+" else key2var["t"][2][0] - step
+            new_val = new_val % len(key2var["d"][2][1])
+            key2var["d"][2][0] = new_val
+
+            sim.set_new_disperser(key2var['d'][2][1][key2var['d'][2][0]])
+            print(f"{c.y}Change {var_name} : {key2var['d'][2][1][key2var['d'][2][0]]} [{new_val}]{c.d}")
             any_change = True
 
 
@@ -168,6 +178,7 @@ if __name__ == "__main__":
         "i" : ["ATM_AIRMASS",    5, [1.0, 2.5,  0.02]],
         "t" : ["TARGET",         0, [0,   targets, 1]],
         "g" : ["GAMMA",          0, [2.0, 10.0, 0.50]],
+        "d" : ["Disperser",      0, [0, ["HoloAmAg", "HoloPhP"], 1]],
     }
 
     bbox_ope = {
@@ -180,6 +191,8 @@ if __name__ == "__main__":
     sim = give_simulator()
     sim.variable_params = dict()
     sim.__setattr__('TARGET', targets[key2var["t"][2][0]])
+    print(f"Set disperser : {key2var['d'][2][1][0]}")
+    sim.set_new_disperser(key2var["d"][2][1][0])
     sim.makeSim(0)
 
 

@@ -58,7 +58,9 @@ full_var_test = {**var_params_atm["test"], **var_params["test"]}
 
 if "tsim" in sys.argv:
 
-	# delete_ctt("simulator")
+	if "new_tsim" in sys.argv :
+		delete_ctt("simulator")
+		
 	from simulator_true import SpecSimulator
 
 else:
