@@ -13,7 +13,7 @@ def simpleLinear(x, a):
 
 def moffat2d_timbre(gamma, alpha):
 
-    return gamma * 3
+    return gamma * 6
 
 
 

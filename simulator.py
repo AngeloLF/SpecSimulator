@@ -26,7 +26,7 @@ class SpecSimulator():
     def __init__(self, psf_function, var_params, output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
                     overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
-                    nb_simu=10, disperser=None):
+                    nb_simu=10, disperser_name=None):
 
         """
         verbose :
@@ -61,7 +61,7 @@ class SpecSimulator():
             if argv in ["rdm", "lsp"] : self.mode4variable = argv
             if argv[:2] == 'f=' : self.output_fold = argv[2:]
             if argv[:2] == 'v=' : self.verbose = int(argv[2:])
-            if argv[:5] == 'disp=' : disperser = argv[5:]
+            if argv[:5] == 'disp=' : disperser_name = argv[5:]
 
         self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
@@ -109,7 +109,7 @@ class SpecSimulator():
         self.lambda_adr_ref = 550
 
         # Loading Disperser, Amplitude and transmission ratio
-        self.disperser_name = disperser if disperser is not None else hparameters.DISPERSER 
+        self.disperser_name = disperser_name if disperser_name is not None else hparameters.DISPERSER 
         if self.verbose >= 0 : print(f"Loading disperser {c.ti}{self.disperser_name}{c.d}")
         self.As = [0.0, self.A1, self.A2, self.A3]
         self.disperser = MyDisperser(self.disperser_name, self.As, self.lambdas, self.R0)
@@ -143,11 +143,14 @@ class SpecSimulator():
             print(f"{c.y}Initialisation of SpecSimulator : {total_time:.2f} s. {c.d}")
 
 
+
     def set_new_disperser(self, disperser_name):
 
+        self.disperser_name = disperser_name
         self.disperser = MyDisperser(disperser_name, self.As, self.lambdas, self.R0)
         self.tr = [None] + self.giveTr()
         self.order2make = {order:[tr, A] for order, (tr, A) in enumerate(zip(self.tr, self.As)) if tr is not None and A != 0.0}
+
 
 
     def run(self):
@@ -290,7 +293,8 @@ class SpecSimulator():
         self.ctt.o(f"Save npy", rank="Full")
         if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
         np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
-        np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum.astype(np.float32))
+        spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+        np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
         self.ctt.c(f"Save npy")
 
         return data_image, spectrum

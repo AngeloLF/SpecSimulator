@@ -56,7 +56,7 @@ full_var_train = {**var_params_atm["train"], **var_params["train"]}
 full_var_test = {**var_params_atm["test"], **var_params["test"]}
 
 
-if "tsim" in sys.argv:
+if "tsim" in sys.argv or "new_tsim" in sys.argv:
 
 	if "new_tsim" in sys.argv :
 		delete_ctt("simulator")

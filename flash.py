@@ -60,7 +60,8 @@ def make_simu(sim, ax, ax_spec, ax_img, ax_labels):
     ax_img.set_data(np.log10(image+1))
 
     ax[0].set_ylim(0, np.max(spectrum)*1.01)
-    ax[0].set_title(f"Target : {sim.__getattribute__('TARGET')} | Amplitude x{sim.__getattribute__('A'):.2f}")
+    target_name, disperser_name, amplitude = sim.__getattribute__('TARGET'), sim.__getattribute__('disperser_name'), sim.__getattribute__('A') 
+    ax[0].set_title(f"Target : {target_name} | Disperser : {disperser_name} | Amplitude x{amplitude:.2f}")
     ax[1].set_title(f"Rotation Angle : {sim.__getattribute__('ROTATION_ANGLE'):.2f}° | Gamma : {sim.psf_function['arg'][0][0]:.1f}")
 
     for label, axl in ax_labels.items():
@@ -130,7 +131,7 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
 
         elif key in ckeys and key == "d":
 
-            new_val = key2var["d"][2][0] + step if ope == "+" else key2var["t"][2][0] - step
+            new_val = key2var["d"][2][0] + step if ope == "+" else key2var["d"][2][0] - step
             new_val = new_val % len(key2var["d"][2][1])
             key2var["d"][2][0] = new_val
 
@@ -227,10 +228,10 @@ if __name__ == "__main__":
 
     ax[0].set_xlim(300, 1100)
     ax[0].set_ylim(0, np.max(spectrum)*1.01)
-    ax[0].set_title(f"Target : {sim.__getattribute__('TARGET')} | Amplitude x{sim.__getattribute__('A'):.2f}")
+    target_name, disperser_name, amplitude = sim.__getattribute__('TARGET'), sim.__getattribute__('disperser_name'), sim.__getattribute__('A') 
+    ax[0].set_title(f"Target : {target_name} | Disperser : {disperser_name} | Amplitude x{amplitude:.2f}")
     ax[1].set_title(f"Rotation Angle : {sim.__getattribute__('ROTATION_ANGLE'):.2f}° | Gamma : {sim.psf_function['arg'][0][0]:.1f}")
     ax[0].legend()
-
 
 
     for key in mpl.rcParams.keys():
@@ -248,7 +249,7 @@ if __name__ == "__main__":
             arg2val["argv"].append(arg)
 
 
-    fps_fix = 60 if not "fps" in arg2val.keys() else int(arg2val["fps"])
+    fps_fix = 30 if not "fps" in arg2val.keys() else int(arg2val["fps"])
     spf_fix = 1 / fps_fix
     print(f"{c.lg}Set fps to {fps_fix}{c.d}")
 
