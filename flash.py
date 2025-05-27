@@ -146,6 +146,8 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
     if "s" in ckeys : show_var_params(sim)
     if "h" in ckeys : show_help(key2var)
 
+    if "*" in ckeys : any_change = True
+
     if any_change : make_simu(sim, ax, ax_spec, ax_img, ax_labels)
 
     return ope
@@ -167,7 +169,15 @@ if __name__ == "__main__":
 
     # var = ["A", "ROTATION_ANGLE", "ATM_AEROSOLS", "ATM_OZONE", "ATM_PWV", "ATM_AIRMASS", "TARGET"]
 
-    targets = hp.TARGETS_NAME["set0"]
+    target_set = "set0"
+
+    for argv in sys.argv[1:]:
+
+        if argv[:3] == "set" : target_set = argv
+
+
+
+    targets = hp.TARGETS_NAME[target_set]
 
 
     key2var = {

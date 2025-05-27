@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import coloralf as c
 import astropy.units as u
 from scipy.interpolate import interp1d
+import scipy.stats as stats
 from time import time, ctime
 from getCalspec import getCalspec
 from tqdm import tqdm
@@ -23,7 +24,7 @@ class SpecSimulator():
     ---
     """
 
-    def __init__(self, psf_function, var_params, output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
+    def __init__(self, psf_function, var_params=dict(), output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
                     overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
                     nb_simu=10, disperser_name=None):
@@ -301,7 +302,7 @@ class SpecSimulator():
 
 
 
-    def simulate_spectrum(self):
+    def simulate_spectrum(self):    
 
         self.ctt.o(f"load_atm", rank="sim spec")
         if self.with_atmosphere : self.atm = self.give_atm_transmission()
@@ -309,10 +310,11 @@ class SpecSimulator():
 
         self.ctt.o(f"multiplier", rank="sim spec")
         spectrum = self.targets_spectrum[self.TARGET](self.lambdas)
-        spectrum *= self.disperser.transmission(self.lambdas)
-        spectrum *= self.telescope_transmission(self.lambdas)
-        if self.with_atmosphere : spectrum *= self.atm(self.lambdas)
-        spectrum *= hparameters.FLAM_TO_ADURATE * self.lambdas * np.gradient(self.lambdas)
+        if self.TARGET != "calib" :
+            spectrum *= self.disperser.transmission(self.lambdas)
+            spectrum *= self.telescope_transmission(self.lambdas)
+            if self.with_atmosphere : spectrum *= self.atm(self.lambdas)
+            spectrum *= hparameters.FLAM_TO_ADURATE * self.lambdas * np.gradient(self.lambdas)
         self.ctt.c(f"multiplier")
 
         return spectrum
@@ -477,13 +479,17 @@ class SpecSimulator():
 
                 wavelengths = spec_dict["WAVELENGTH"].value
                 spectra = spec_dict["FLUX"].value
+                sed = interp1d(wavelengths, spectra, kind='linear', bounds_error=False, fill_value=0.)
+
+            elif target == "calib":
+
+                sed = self.make_calib_spectrum
 
             else:
 
                 print(f"{c.r}WARNING : label {target} for loading spectrum is not avaible ...{c.d}")
                 wavelengths, spectra = None, None
-
-            sed = interp1d(wavelengths, spectra, kind='linear', bounds_error=False, fill_value=0.)
+                sed = interp1d(wavelengths, spectra, kind='linear', bounds_error=False, fill_value=0.)
 
             self.targets_spectrum[target] = sed
             if self.verbose > 1 :
@@ -492,6 +498,23 @@ class SpecSimulator():
 
         if self.verbose > 1:
             print(f" ... ok")
+
+
+
+    def make_calib_spectrum(self, x, npeak=[1, 1], amp=[1e4, 1e5], sig=[10, 50]):
+
+        num_peak = np.random.randint(npeak[0], npeak[1]+1)
+        amps = np.random.uniform(*amp, num_peak)
+        sigs = np.random.uniform(*sig, num_peak)
+        lbds = np.random.uniform(x[0], x[-1], num_peak)
+
+        spectrum = np.zeros_like(x).astype(float)
+        for x0, a, s in zip(lbds, amps, sigs):
+            spectrum += stats.norm.pdf(x, loc=x0, scale=s) * a
+
+        return spectrum
+
+
 
 
     def giveTr(self, order=1):
