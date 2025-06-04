@@ -53,6 +53,7 @@ class SpecSimulator():
         self.mode4variable = mode4variable
         self.output_fold = output_fold
         self.verbose = verbose
+        self.no0 = False # no order 0
         for argv in input_argv:
             if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
             if argv[1:] == 'times' : self.show_times = True if argv[0] == '+' else False
@@ -63,6 +64,7 @@ class SpecSimulator():
             if argv[:2] == 'f=' : self.output_fold = argv[2:]
             if argv[:2] == 'v=' : self.verbose = int(argv[2:])
             if argv[:5] == 'disp=' : disperser_name = argv[5:]
+            if argv == "no0" : self.no0 = True
 
         self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
@@ -73,6 +75,7 @@ class SpecSimulator():
 
         # Define variables parameters for the simulation
         self.init_var_params(var_params)
+        if self.no0 : self.A0 = 0.0
 
         # Define output directory
         num = 0
