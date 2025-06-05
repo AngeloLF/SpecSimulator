@@ -92,6 +92,7 @@ class SpecSimulator():
             print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
@@ -185,33 +186,49 @@ class SpecSimulator():
                 print(f"Time for {nb_train} pict. : {time_per_train:.1f} min with {image.shape[0] * image.shape[1] * 8 / 1024**3 * nb_train:.2f} Go")
 
 
-        if self.show_specs:
+        # view some specs in divers/
+        if self.show_specs and self.nb_simu >= 10:
 
-            if self.nb_simu >= 10:
+            # image
+            plt.figure(figsize=(16, 12))
+            files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:10]
 
-                plt.figure(figsize=(16, 12))
-                files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:10]
+            for i, file in enumerate(files):
+                img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
-                for i, file in enumerate(files):
-                    img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
+                plt.subplot(5, 2, i+1)
+                plt.imshow(np.log(img+1), cmap='gray', origin='lower')
+                plt.title(self.variable_params['TARGET'][i])
+                plt.axis('off')
 
-                    plt.subplot(5, 2, i+1)
-                    plt.imshow(np.log(img+1), cmap='gray', origin='lower')
-                    plt.title(self.variable_params['TARGET'][i])
-                    plt.axis('off')
+            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
+            plt.close()
 
-                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
-                plt.close()
+            # spectro
+            plt.figure(figsize=(16, 12))
+            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectro")[:10]
 
-                plt.figure(figsize=(24, 12))
-                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
-                for i, file in enumerate(files):
-                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
-                    spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
-                    plt.plot(self.lambdas, spec, label=', '.join(title))
-                plt.legend()
-                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/specs.png")
-                plt.close()
+            for i, file in enumerate(files):
+                img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
+
+                plt.subplot(5, 2, i+1)
+                plt.imshow(np.log(img+1), cmap='gray', origin='lower')
+                plt.title(self.variable_params['TARGET'][i])
+                plt.axis('off')
+
+            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectro.png")
+            plt.close()
+
+            # spectrum
+            plt.figure(figsize=(24, 12))
+            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
+            for i, file in enumerate(files):
+                title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
+                spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
+                plt.plot(self.lambdas, spec, label=', '.join(title))
+            plt.legend()
+            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/specs.png")
+            plt.close()
 
 
     def makeSim(self, num_simu):
@@ -244,6 +261,7 @@ class SpecSimulator():
         self.ctt.o(f"Blank simulate", rank="Full")
         self.ctt.o(f"Init simulate", rank="BlankS")
         spectrogram_data = np.zeros((self.Ny, self.Nx), dtype="float32")
+        spectro_deconv = np.zeros((self.Ny, self.Nx), dtype="float32")
         self.ctt.c(f"Init simulate")
         
         self.ctt.o(f"Construction spectrum", rank="BlankS")
@@ -256,6 +274,7 @@ class SpecSimulator():
             self.ctt.o(f"Compute dispersion & params", rank="BlankS")
             adr_x, adr_y = self.loading_adr()
             Amp = A * tr(self.lambdas) * spectrum
+            X_p = self.disperser.dist_along_disp_axis[order]                                             + adr_x + self.R0[0]
             X_c = self.disperser.dist_along_disp_axis[order] * np.cos(self.ROTATION_ANGLE * np.pi / 180) + adr_x + self.R0[0]
             Y_c = self.disperser.dist_along_disp_axis[order] * np.sin(self.ROTATION_ANGLE * np.pi / 180) + adr_y + self.R0[1]
             self.ctt.c(f"Compute dispersion & params")
@@ -263,6 +282,7 @@ class SpecSimulator():
             # Building PSF
             self.ctt.o(f"Building PSF cube", rank="BlankS")
             spectrogram_data += self.build_psf_cube(X_c, Y_c, Amp, timbre_size)
+            spectro_deconv[self.R0[1], X_p] = Amp
             self.ctt.c(f"Building PSF cube")
         self.ctt.c(f"Blank simulate")
 
@@ -298,7 +318,9 @@ class SpecSimulator():
         if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
         np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
         spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+        spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
         np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
+        np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
         self.ctt.c(f"Save npy")
 
         return data_image, spectrum
