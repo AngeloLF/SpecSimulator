@@ -39,6 +39,7 @@ VARIABLE_PARAMS = {
 
 # Targets for spectrums simulations
 TARGETS_NAME = {
+
     # 20 Calspec to use
     "set0" : ['HD009051', 'HD031128', 'HD101452', 'HD106252', 'HD111980', 
             'HD115169', 'HD142331', 'HD14943',  'HD158485', 'HD159222', 
@@ -52,6 +53,8 @@ TARGETS_NAME = {
     # THE Calspec
     "set2" : ['HD111980'],
 
+
+
     # set0 + calib
     "set0cal" : ['HD009051', 'HD031128', 'HD101452', 'HD106252', 'HD111980', 
             'HD115169', 'HD142331', 'HD14943',  'HD158485', 'HD159222', 
@@ -59,8 +62,17 @@ TARGETS_NAME = {
             'HD200654', 'HD205905', 'HD209458',  'HD37962',  'HD38949',
             'calib'],
 
-    # only calib
     "setCalib" : ["calib"],
+
+
+
+    # set0 + calPX
+    "set0cal" : ['HD009051', 'HD031128', 'HD101452', 'HD106252', 'HD111980', 
+            'HD115169', 'HD142331', 'HD14943',  'HD158485', 'HD159222', 
+            'HD160617', 'HD163466', 'HD165459', 'HD167060', 'HD185975', 
+            'HD200654', 'HD205905', 'HD209458',  'HD37962',  'HD38949',
+            'calPX'],
+            
     "setCalPX" : ["calPX"],
 }
 
