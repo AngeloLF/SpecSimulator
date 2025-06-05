@@ -279,7 +279,7 @@ class SpecSimulator():
         if self.with_atmosphere : self.atm = self.give_atm_transmission()
 
         spectrum = self.targets_spectrum[self.TARGET](self.lambdas)
-        if self.TARGET != "calib" :
+        if self.TARGET not in ["calib", "calPX"] :
             spectrum *= self.disperser.transmission(self.lambdas)
             spectrum *= self.telescope_transmission(self.lambdas)
             if self.with_atmosphere : spectrum *= self.atm(self.lambdas)
@@ -445,6 +445,10 @@ class SpecSimulator():
 
                 sed = self.make_calib_spectrum
 
+            elif target == "calPX":
+
+                sed = self.make_calPX_spectrum
+
             else:
 
                 print(f"{c.r}WARNING : label {target} for loading spectrum is not avaible ...{c.d}")
@@ -475,6 +479,19 @@ class SpecSimulator():
         return spectrum
 
 
+
+    def make_calPX_spectrum(self, x, npeak=[1, 2], amp=[1e3, 1e4]):
+
+        num_peak = np.random.randint(npeak[0], npeak[1]+1)
+        amps = np.random.uniform(*amp, num_peak)
+        # sigs = np.random.uniform(*sig, num_peak)
+        lbds = np.random.randint(0, len(x), num_peak)
+
+        spectrum = np.zeros_like(x).astype(float)
+        for x0, a in zip(lbds, amps):
+            spectrum[x0] = a
+
+        return spectrum
 
 
     def giveTr(self, order=1):
@@ -594,6 +611,7 @@ class SpecSimulator():
         d = np.copy(data).astype(np.float32)
         # convert to electron counts
         d *= hparameters.CCD_GAIN
+
         # Poisson noise
         noisy = np.random.poisson(d).astype(np.float32)
         # Add read-out noise is available
