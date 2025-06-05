@@ -60,7 +60,8 @@ TARGETS_NAME = {
             'calib'],
 
     # only calib
-    "setCalOnly" : ["calib"],
+    "setCalib" : ["calib"],
+    "setCalPX" : ["calPX"],
 }
 
 # SIMULATION PARAMS
