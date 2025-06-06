@@ -93,7 +93,7 @@ class SpecSimulator():
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro_vector")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
@@ -196,7 +196,7 @@ class SpecSimulator():
                 img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
                 plt.subplot(5, 2, i+1)
-                plt.imshow(np.log(img+1), cmap='gray', origin='lower')
+                plt.imshow(np.log10(img+1), cmap='gray', origin='lower')
                 plt.title(self.variable_params['TARGET'][i])
                 plt.axis('off')
 
@@ -211,7 +211,7 @@ class SpecSimulator():
                 img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
 
                 plt.subplot(5, 2, i+1)
-                plt.imshow(np.log(img+1), cmap='gray', origin='lower')
+                plt.imshow(img+1, cmap='gray', origin='lower')
                 plt.title(self.variable_params['TARGET'][i])
                 plt.axis('off')
 
@@ -226,7 +226,19 @@ class SpecSimulator():
                 spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
                 plt.plot(self.lambdas, spec, label=', '.join(title))
             plt.legend()
-            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/specs.png")
+            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrum.png")
+            plt.close()
+
+
+            # spectrumPX
+            plt.figure(figsize=(24, 12))
+            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")[:10]
+            for i, file in enumerate(files):
+                title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
+                spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrumPX/{file}")
+                plt.plot(self.xpixels, spec, label=', '.join(title))
+            plt.legend()
+            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrumPX.png")
             plt.close()
 
 
@@ -299,6 +311,7 @@ class SpecSimulator():
         spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
         np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
         np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
+        np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
 
         return data_image, spectrum
 
