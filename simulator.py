@@ -93,6 +93,7 @@ class SpecSimulator():
         os.mkdir(f"{self.output_dir}/{self.save_fold}")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro_vector")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
@@ -102,6 +103,7 @@ class SpecSimulator():
         # Simulation size
         self.Nx = hparameters.SIM_NX
         self.Ny = hparameters.SIM_NY
+        self.xpixels = np.arange(0, self.Nx)
         self.yy, self.xx = np.mgrid[:self.Ny, :self.Nx].astype(np.int32)
         self.pixels = np.asarray([self.xx, self.yy])
 
@@ -282,7 +284,13 @@ class SpecSimulator():
             # Building PSF
             self.ctt.o(f"Building PSF cube", rank="BlankS")
             spectrogram_data += self.build_psf_cube(X_c, Y_c, Amp, timbre_size)
-            spectro_deconv[self.R0[1], X_p] = Amp
+
+            if order == 1:
+
+                func_amp = interp1d(X_p, Amp, kind='linear', bounds_error=False, fill_value=0.)
+                yamp = func_amp(self.xpixels)     
+                spectro_deconv[int(self.R0[1])] = yamp
+
             self.ctt.c(f"Building PSF cube")
         self.ctt.c(f"Blank simulate")
 
