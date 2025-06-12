@@ -34,7 +34,7 @@ VARIABLE_PARAMS = {
     # Divers
     "EXPOSURE" : 120.0,
     "BACKGROUND_LEVEL" : 0.5,
-    "CCD_READ_OUT_NOISE" : 12.0,
+    "CCD_READ_OUT_NOISE" : 12.0, # e-
 }     
 
 # Targets for spectrums simulations
