@@ -53,6 +53,7 @@ class SpecSimulator():
         self.mode4variable = mode4variable
         self.output_fold = output_fold
         self.verbose = verbose
+        self.colorSimu = False
         self.no0 = False # no order 0
         for argv in input_argv:
             if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
@@ -65,6 +66,7 @@ class SpecSimulator():
             if argv[:2] == 'v=' : self.verbose = int(argv[2:])
             if argv[:5] == 'disp=' : disperser_name = argv[5:]
             if argv == "no0" : self.no0 = True
+            if argv == "color" : self.colorSimu = True
 
         self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
         self.len_simu = len(str(self.nb_simu-1))
@@ -95,6 +97,7 @@ class SpecSimulator():
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
+        os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
         os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
         # Order 0 coord.
@@ -154,6 +157,12 @@ class SpecSimulator():
 
         self.disperser_name = disperser_name
         self.disperser = MyDisperser(disperser_name, self.As, self.lambdas, self.R0)
+        self.refresh_order2make()
+
+
+
+    def refresh_order2make(self):
+
         self.tr = [None] + self.giveTr()
         self.order2make = {order:[tr, A] for order, (tr, A) in enumerate(zip(self.tr, self.As)) if tr is not None and A != 0.0}
 
@@ -202,6 +211,23 @@ class SpecSimulator():
 
             plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
             plt.close()
+
+            # image RGB
+            if self.colorSimu:
+                plt.figure(figsize=(16, 12))
+                files = os.listdir(f"{self.output_dir}/{self.save_fold}/imageRGB")[:10]
+
+                for i, file in enumerate(files):
+                    img = np.load(f"{self.output_dir}/{self.save_fold}/imageRGB/{file}") / len(self.lambdas)
+                    img /= np.max(img)
+
+                    plt.subplot(5, 2, i+1)
+                    plt.imshow(img, origin='lower')
+                    plt.title(self.variable_params['TARGET'][i])
+                    plt.axis('off')
+
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/imagesRGB.png")
+                plt.close()
 
             # spectro
             plt.figure(figsize=(16, 12))
@@ -267,20 +293,24 @@ class SpecSimulator():
         # SIMULATE
         spectrogram_data = np.zeros((self.Ny, self.Nx), dtype="float32")
         spectro_deconv = np.zeros((self.Ny, self.Nx), dtype="float32")
+        spectrogram_data_RGB = np.zeros((self.Ny, self.Nx, 3), dtype="float32") if self.colorSimu else None
         
         spectrum = self.simulate_spectrum() * self.A
 
         for order, (tr, A) in self.order2make.items():
             
             # Dispersion law
-            adr_x, adr_y = self.loading_adr()
+            if self.with_adr : adr_x, adr_y = self.loading_adr()
+            else : adr_x, adr_y = 0.0, 0.0 
             Amp = A * tr(self.lambdas) * spectrum
             X_p = self.disperser.dist_along_disp_axis[order]                                             + adr_x + self.R0[0]
             X_c = self.disperser.dist_along_disp_axis[order] * np.cos(self.ROTATION_ANGLE * np.pi / 180) + adr_x + self.R0[0]
             Y_c = self.disperser.dist_along_disp_axis[order] * np.sin(self.ROTATION_ANGLE * np.pi / 180) + adr_y + self.R0[1]
 
             # Building PSF
-            spectrogram_data += self.build_psf_cube(X_c, Y_c, Amp, timbre_size)
+            sdo, sdo_RGB = self.build_psf_cube(X_c, Y_c, Amp, timbre_size)
+            spectrogram_data += sdo
+            if self.colorSimu : spectrogram_data_RGB += sdo_RGB 
 
             if order == 1:
 
@@ -291,22 +321,43 @@ class SpecSimulator():
 
 
         # IMAGE RECOMBINAISON
-        data_image = spectrogram_data + self.psf_function['f'](self.xx, self.yy, self.psf_function['order0']['amplitude']*self.A0*self.A, *self.R0, *self.psf_function['order0']['arg']).astype(np.float32)
+        psf_order_0 = self.psf_function['f'](self.xx, self.yy, self.psf_function['order0']['amplitude']*self.A0*self.A, *self.R0, *self.psf_function['order0']['arg']).astype(np.float32)
+        data_image = spectrogram_data + psf_order_0
+        if self.colorSimu : 
+            data_image_RGB = spectrogram_data_RGB
+            norma = np.max(psf_order_0) if np.max(spectrogram_data_RGB) == 0 else np.max(spectrogram_data_RGB)
+            data_image_RGB[:, :, 0] += psf_order_0 / np.max(psf_order_0) * norma
+            data_image_RGB[:, :, 1] += psf_order_0 / np.max(psf_order_0) * norma
+            data_image_RGB[:, :, 2] += psf_order_0 / np.max(psf_order_0) * norma
 
         if self.with_background:
             data_image += self.BACKGROUND_LEVEL
+            if self.colorSimu : 
+                data_image_RGB[:, :, 0] += self.BACKGROUND_LEVEL
+                data_image_RGB[:, :, 1] += self.BACKGROUND_LEVEL
+                data_image_RGB[:, :, 2] += self.BACKGROUND_LEVEL
 
         if self.with_flat:
             data_image *= self.flat
+            if self.colorSimu : 
+                data_image_RGB[:, :, 0] *= self.flat
+                data_image_RGB[:, :, 1] *= self.flat
+                data_image_RGB[:, :, 2] *= self.flat
 
         if self.with_convertADU:
             data_image *= self.EXPOSURE
+            if self.colorSimu : data_image_RGB *= self.EXPOSURE
 
         if self.with_noise:
             data_image = self.add_poisson_and_read_out_noise(data_image)
+            if self.colorSimu : 
+                data_image_RGB[:, :, 0] = self.add_poisson_and_read_out_noise(data_image_RGB[:, :, 0])
+                data_image_RGB[:, :, 1] = self.add_poisson_and_read_out_noise(data_image_RGB[:, :, 1])
+                data_image_RGB[:, :, 2] = self.add_poisson_and_read_out_noise(data_image_RGB[:, :, 2])
 
         if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
         np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
+        if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
         spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
         spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
         np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
@@ -337,9 +388,10 @@ class SpecSimulator():
 
         argmin = max(0,  int(np.argmin(np.abs(X_c))))
         argmax = min(self.Nx, np.argmin(np.abs(X_c-self.Nx)) + 1)
-        psf_cube = np.zeros((hparameters.SIM_NY, hparameters.SIM_NX), dtype=dtype)    
+        psf_cube = np.zeros((hparameters.SIM_NY, hparameters.SIM_NX), dtype=dtype)  
         timbreX = np.zeros((int(timbre_size*2), int(timbre_size*2)), dtype=dtype)
         timbreY = np.zeros((int(timbre_size*2), int(timbre_size*2)), dtype=dtype)
+        psf_cube_RGB = np.zeros((hparameters.SIM_NY, hparameters.SIM_NX, 3), dtype=dtype) if self.colorSimu else None
 
         for x in range(argmin, argmax):
 
@@ -353,9 +405,15 @@ class SpecSimulator():
             timbreY[:ymax-ymin, :xmax-xmin] = Ypix
             argf = [f_arg(self.lambdas[x], *arg) for f_arg, arg in zip(self.psf_function['f_arg'], self.psf_function['arg'])]
 
-            psf_cube[ymin:ymax, xmin:xmax] += self.psf_function['f'](timbreX, timbreY, amplitude[x], X_c[x], Y_c[x], *argf)[:ymax-ymin, :xmax-xmin]
+            psf2add = self.psf_function['f'](timbreX, timbreY, amplitude[x], X_c[x], Y_c[x], *argf)[:ymax-ymin, :xmax-xmin]
+            psf_cube[ymin:ymax, xmin:xmax] += psf2add
+            if self.colorSimu:
+                R, G, B, A = self.wavelength_to_rgb(self.lambdas[x])
+                psf_cube_RGB[ymin:ymax, xmin:xmax, 0] += R * psf2add
+                psf_cube_RGB[ymin:ymax, xmin:xmax, 1] += G * psf2add
+                psf_cube_RGB[ymin:ymax, xmin:xmax, 2] += B * psf2add
 
-        return psf_cube
+        return psf_cube, psf_cube_RGB
 
 
 
@@ -688,7 +746,114 @@ class SpecSimulator():
 
         return transmission
 
+
+
     def give_atm_transmission(self):
 
         atm = self.emulator.GetAllTransparencies(self.lambdas, am=self.ATM_AIRMASS, pwv=self.ATM_PWV, oz=self.ATM_OZONE, tau=self.ATM_AEROSOLS, beta=self.ATM_ANGSTROM_EXPONENT, flagAerosols=True)
         return interp1d(self.lambdas, atm, kind='linear', bounds_error=False, fill_value=(0, 0))
+
+
+
+    def wavelength_to_rgb(self, wavelength, gamma=0.8):
+        """ taken from http://www.noah.org/wiki/Wavelength_to_RGB_in_Python
+        This converts a given wavelength of light to an
+        approximate RGB color value. The wavelength must be given
+        in nanometers in the range from 380 nm through 750 nm
+        (789 THz through 400 THz).
+
+        Based on code by Dan Bruton
+        http://www.physics.sfasu.edu/astro/color/spectra.html
+        Additionally alpha value set to 0.5 outside range
+        """
+        wavelength = float(wavelength)
+        if 380 <= wavelength <= 750:
+            A = 1.
+        else:
+            A = 1.0
+        if wavelength < 380:
+            wavelength = 380.
+        if wavelength > 750:
+            wavelength = 750.
+        if 380 <= wavelength <= 440:
+            attenuation = 0.3 + 0.7 * (wavelength - 380) / (440 - 380)
+            R = ((-(wavelength - 440) / (440 - 380)) * attenuation) ** gamma
+            G = 0.0
+            B = (1.0 * attenuation) ** gamma
+        elif 440 <= wavelength <= 490:
+            R = 0.0
+            G = ((wavelength - 440) / (490 - 440)) ** gamma
+            B = 1.0
+        elif 490 <= wavelength <= 510:
+            R = 0.0
+            G = 1.0
+            B = (-(wavelength - 510) / (510 - 490)) ** gamma
+        elif 510 <= wavelength <= 580:
+            R = ((wavelength - 510) / (580 - 510)) ** gamma
+            G = 1.0
+            B = 0.0
+        elif 580 <= wavelength <= 645:
+            R = 1.0
+            G = (-(wavelength - 645) / (645 - 580)) ** gamma
+            B = 0.0
+        elif 645 <= wavelength <= 750:
+            attenuation = 0.3 + 0.7 * (750 - wavelength) / (750 - 645)
+            R = (1.0 * attenuation) ** gamma
+            G = 0.0
+            B = 0.0
+        else:
+            R = 0.0
+            G = 0.0
+            B = 0.0
+        return R, G, B, A
+
+
+
+    #####
+    #####    Function for change params
+    #####
+
+
+
+    def change_adr(self):
+
+        self.with_adr = not self.with_adr
+
+
+
+    def change_back(self):
+
+        self.with_background = not self.with_background
+
+
+
+    def change_noise(self):
+
+        self.with_noise = not self.with_noise
+
+
+
+    def change_RGB(self):
+
+        self.colorSimu = not self.colorSimu
+
+
+
+    def change_A1(self):
+
+        self.As[1] = 1 - self.As[1]
+        self.refresh_order2make()
+
+
+
+    def change_A2(self):
+
+        self.As[2] = 1 - self.As[2]
+        self.refresh_order2make()
+
+
+
+    def change_A3(self):
+
+        self.As[3] = 1 - self.As[3]
+        self.refresh_order2make()
