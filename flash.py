@@ -45,7 +45,7 @@ def show_var_params(sim):
 
     for hpi in list(hp.VARIABLE_PARAMS.keys()) + ["TARGET"]:
 
-        print(f"{c.y}{hpi}{c.d} : {c.ly}{c.ti}{sim.__getattribute__(hpi):.2f}{c.d}")
+        print(f"{c.y}{hpi}{c.d} : {c.ly}{c.ti}{sim.__getattribute__(hpi)}{c.d}")
 
 
 
@@ -53,16 +53,35 @@ def make_simu(sim, ax, ax_spec, ax_img, ax_labels):
 
     sim.makeSim(0)
 
-    spectrum = np.load(f"./results/output_simu/flash/spectrum/spectrum_0.npy")
-    image = np.load(f"./results/output_simu/flash/image/image_0.npy")
+    spectrum = np.load(f"./results/output_simu/flash/spectrum/spectrum_0.npy") / ccd_gain
+
+    if not sim.colorSimu: 
+        image = np.load(f"./results/output_simu/flash/image/image_0.npy")
+        ax_img.set_data(np.log10(image+1))
+    else: 
+        image = np.load(f"./results/output_simu/flash/imageRGB/imageRGB_0.npy") / len(sim.lambdas)
+        image /= np.max(image)
+        ax_img.set_data(image)
 
     ax_spec.set_ydata(spectrum)
-    ax_img.set_data(np.log10(image+1))
+    
 
     ax[0].set_ylim(0, np.max(spectrum)*1.01)
     target_name, disperser_name, amplitude = sim.__getattribute__('TARGET'), sim.__getattribute__('disperser_name'), sim.__getattribute__('A') 
-    ax[0].set_title(f"Target : {target_name} | Disperser : {disperser_name} | Amplitude x{amplitude:.2f}")
-    ax[1].set_title(f"Rotation Angle : {sim.__getattribute__('ROTATION_ANGLE'):.2f}° | Gamma : {sim.psf_function['arg'][0][0]:.1f}")
+    ax[0].set_title(f"Target : {target_name} | Disperser : {disperser_name} | Amplitude x{amplitude:.2f} | Rota. Angle : {sim.__getattribute__('ROTATION_ANGLE'):.2f}° | $\gamma$ : {sim.psf_function['arg'][0][0]:.1f}")
+
+        
+    titleImage = ["order 0"]
+    if sim.As[1] > 0.0 : titleImage.append(f"Order 1")
+    if sim.As[2] > 0.0 : titleImage.append("Order 2")
+    if np.abs(sim.__getattribute__('ROTATION_ANGLE')) > 0.01 : titleImage.append(f"Rotation")
+    if sim.with_adr : titleImage.append(f"ADR")
+    if sim.psf_function['arg'][0][0] > 1.0 : titleImage.append(f"PSF")
+    if sim.with_background : titleImage.append(f"Back.")
+    if sim.with_noise : titleImage.append(f"Noise")
+
+    ax[1].set_title(f"With {', '.join(titleImage)}")
+
 
     for label, axl in ax_labels.items():
         axl.set_label(f"{label[4:]} = {sim.__getattribute__(label):.2f}")
@@ -94,7 +113,7 @@ def timeFormat(t):
 
 
 
-def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
+def new_simu(key2var, optionParam, ope, sim, ax, ax_spec, ax_img, ax_labels):
 
     any_change = False
 
@@ -140,11 +159,19 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
             any_change = True
 
 
+    for key, (func, attr) in optionParam.items():
+
+        if key in ckeys:
+            sim.__getattribute__(func)()
+            print(f"{c.y}Change {attr} to {sim.__getattribute__(attr)}{c.d}")
+            any_change = True
+
+
     if "+" in ckeys : ope = "+"
     if "-" in ckeys : ope = "-"
 
     if "s" in ckeys : show_var_params(sim)
-    if "h" in ckeys : show_help(key2var)
+    if "h" in ckeys : show_help(key2var, optionParam)
 
     if "*" in ckeys : any_change = True
 
@@ -154,13 +181,17 @@ def new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels):
 
 
 
-def show_help(key2var):
+def show_help(key2var, optionParam):
 
     print(f"{c.g}\nLes changement dans la simu : {c.d}")
 
     for key, (var_name, ekey, (vmin, vmax, step)) in key2var.items():
 
         print(f"Clé {c.ly}{key}{c.d} : {c.y}{var_name[:ekey]}{c.d}{c.ly}{c.tu}{var_name[ekey]}{c.d}{c.y}{var_name[ekey+1:]}{c.d}")
+
+    for key, (func, attr) in optionParam.items():
+
+        print(f"Clé {c.ly}{key}{c.d} : func {c.y}{func}{c.d}")
 
 
 
@@ -170,6 +201,7 @@ if __name__ == "__main__":
     # var = ["A", "ROTATION_ANGLE", "ATM_AEROSOLS", "ATM_OZONE", "ATM_PWV", "ATM_AIRMASS", "TARGET"]
 
     target_set = "set0"
+    ccd_gain = 3. # e / ADu
 
     for argv in sys.argv[1:]:
 
@@ -188,8 +220,19 @@ if __name__ == "__main__":
         "p" : ["ATM_PWV",        4, [0.0, 15.0, 0.20]],
         "i" : ["ATM_AIRMASS",    5, [1.0, 2.5,  0.02]],
         "t" : ["TARGET",         0, [0,   targets, 1]],
-        "g" : ["GAMMA",          0, [2.0, 10.0, 0.50]],
+        "g" : ["GAMMA",          0, [1.0, 10.0, 0.50]],
         "d" : ["Disperser",      0, [0, ["HoloAmAg", "HoloPhP"], 1]],
+    }
+
+    optionParam = {
+
+        "1" : ["change_A1", "As"],
+        "2" : ["change_A2", "As"],
+        "3" : ["change_adr", "with_adr"],
+        "4" : ["change_back", "with_background"],
+        "5" : ["change_noise", "with_noise"],
+        "6" : ["change_RGB", "colorSimu"],
+        
     }
 
     bbox_ope = {
@@ -220,8 +263,8 @@ if __name__ == "__main__":
     # Créer une figure et un axe
     fig, ax = plt.subplots(2, 1)
 
-    anno = ax[0].annotate(f"--- fps", (650, 0), color='k', rotation=0, bbox=dict(boxstyle="round,pad=0.2", fc="gray", ec="black", lw=1))
-    opeo = ax[0].annotate(f"{ope}", (750, 0), color='k', rotation=0, bbox=bbox_ope[ope])
+    anno = ax[0].annotate(f"--- fps", (650, -10), color='k', rotation=0, bbox=dict(boxstyle="round,pad=0.2", fc="gray", ec="black", lw=1))
+    opeo = ax[0].annotate(f"{ope}", (750, -10), color='k', rotation=0, bbox=bbox_ope[ope])
 
     ax_labels = {
         "ATM_AEROSOLS" : ax[0].scatter([], [], marker='*', label=f"AEROSOLS = {sim.__getattribute__(f'ATM_AEROSOLS'):.2f}"),
@@ -233,14 +276,19 @@ if __name__ == "__main__":
     spectrum = np.load(f"./results/output_simu/flash/spectrum/spectrum_0.npy")
     image = np.load(f"./results/output_simu/flash/image/image_0.npy")
     
-    ax_spec, = ax[0].plot(xl, spectrum, color='k')
+    ax_spec, = ax[0].plot(xl, spectrum / ccd_gain, color='k')
     ax_img = ax[1].imshow(np.log10(image+1), cmap='gray')
+
+    ax[0].set_xlabel(f"$\lambda$ (nm)")
+    ax[0].set_ylabel(f"$ADU$")
+    ax[1].set_xlabel(f"CCD axis 0")
+    ax[1].set_ylabel(f"CCD axis 1")
 
     ax[0].set_xlim(300, 1100)
     ax[0].set_ylim(0, np.max(spectrum)*1.01)
     target_name, disperser_name, amplitude = sim.__getattribute__('TARGET'), sim.__getattribute__('disperser_name'), sim.__getattribute__('A') 
-    ax[0].set_title(f"Target : {target_name} | Disperser : {disperser_name} | Amplitude x{amplitude:.2f}")
-    ax[1].set_title(f"Rotation Angle : {sim.__getattribute__('ROTATION_ANGLE'):.2f}° | Gamma : {sim.psf_function['arg'][0][0]:.1f}")
+    ax[0].set_title(f"None")
+    ax[1].set_title(f"None")
     ax[0].legend()
 
 
@@ -271,6 +319,9 @@ if __name__ == "__main__":
     i = 0
     t0 = time.time()
     tInit = time.time()
+
+    make_simu(sim, ax, ax_spec, ax_img, ax_labels)
+
     while True:
 
         spf = time.time()-t0
@@ -280,7 +331,7 @@ if __name__ == "__main__":
         # Redessiner la figure
 
         # make_key_action(sim, ax, ax_spec, ax_img)
-        ope = new_simu(key2var, ope, sim, ax, ax_spec, ax_img, ax_labels)
+        ope = new_simu(key2var, optionParam, ope, sim, ax, ax_spec, ax_img, ax_labels)
         opeo.set_text(ope)
         opeo.set_bbox(bbox_ope[ope])
         fig.canvas.draw_idle()
