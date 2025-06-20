@@ -122,7 +122,7 @@ OBS_TRANSMISSION_SYSTEMATICS = 0.005
 OBS_CAMERA_ROTATION = 0  # Camera (x,y) rotation angle with respect to (north-up, east-left) system in degrees
 OBS_CAMERA_DEC_FLIP_SIGN = 1  # Camera (x,y) flip signs with respect to (north-up, east-left) system
 OBS_CAMERA_RA_FLIP_SIGN = 1  # Camera (x,y) flip signs with respect to (north-up, east-left) system
-OBS_PRESSURE = 784.0
+OBS_PRESSURE = 784.0 #784.0
 
 # Spectrograph characteristics
 DISTANCE2CCD = 55.45  # distance between hologram and CCD in mm
