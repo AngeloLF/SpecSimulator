@@ -218,7 +218,7 @@ if __name__ == "__main__":
         "e" : ["ATM_AEROSOLS",   5, [0.0, 1.0,  0.02]],
         "o" : ["ATM_OZONE",      4, [200, 400,  2.00]],
         "p" : ["ATM_PWV",        4, [0.0, 15.0, 0.20]],
-        "i" : ["ATM_AIRMASS",    5, [1.0, 2.5,  0.02]],
+        "i" : ["ATM_AIRMASS",    5, [1.0, 2.5,  0.10]],
         "t" : ["TARGET",         0, [0,   targets, 1]],
         "g" : ["GAMMA",          0, [1.0, 10.0, 0.50]],
         "d" : ["Disperser",      0, [0, ["HoloAmAg", "HoloPhP"], 1]],

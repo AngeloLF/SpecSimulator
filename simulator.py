@@ -116,7 +116,7 @@ class SpecSimulator():
         # Definition of lambdas
         self.N = hparameters.N
         self.lambdas = hparameters.LAMBDAS
-        self.lambda_adr_ref = 550
+        self.lambda_adr_ref = 550 #550
 
         # Loading Disperser, Amplitude and transmission ratio
         self.disperser_name = disperser_name if disperser_name is not None else hparameters.DISPERSER 
@@ -700,6 +700,8 @@ class SpecSimulator():
 
             ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, hparameters.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
             adr_ra, adr_dec = adr_calib(self.lambdas, ADR_PARAMS, hparameters.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
+
+            print(ADR_PARAMS, hparameters.OBS_LATITUDE, self.lambda_adr_ref)
 
             # flip_and_rotate_radec_vector_to_xy_vector of 
             flip = np.array([[hparameters.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, hparameters.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
