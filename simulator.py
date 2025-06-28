@@ -27,7 +27,7 @@ class SpecSimulator():
     def __init__(self, psf_function, var_params=dict(), output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
                     with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
                     overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
-                    nb_simu=10, disperser_name=None):
+                    nb_simu=10, disperser_name=None, savingFolders=True):
 
         """
         verbose :
@@ -80,25 +80,27 @@ class SpecSimulator():
         if self.no0 : self.A0 = 0.0
 
         # Define output directory
-        num = 0
-        self.save_fold = self.output_fold
-        if not self.overwrite:
-            while self.save_fold in os.listdir(self.output_dir):
-                num += 1
-                self.save_fold = self.output_fold + "_" + str(num)
-        elif self.save_fold in os.listdir(self.output_dir):
-            if self.verbose > 0: 
-                print(f"{c.y}Overwriting... delete of {self.output_dir}/{self.save_fold}{c.d}")
-            shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
-        if self.verbose >= 0: 
-            print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
-        os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
+        self.savingFolders = savingFolders
+        if self.savingFolders:
+            num = 0
+            self.save_fold = self.output_fold
+            if not self.overwrite:
+                while self.save_fold in os.listdir(self.output_dir):
+                    num += 1
+                    self.save_fold = self.output_fold + "_" + str(num)
+            elif self.save_fold in os.listdir(self.output_dir):
+                if self.verbose > 0: 
+                    print(f"{c.y}Overwriting... delete of {self.output_dir}/{self.save_fold}{c.d}")
+                shutil.rmtree(f"{self.output_dir}/{self.save_fold}")
+            if self.verbose >= 0: 
+                print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
         
         # Order 0 coord.
         self.R0 = hparameters.R0
@@ -271,24 +273,23 @@ class SpecSimulator():
             plt.close()
 
 
-    def makeSim(self, num_simu):
+    def makeSim(self, num_simu, updateParams=True, giveSpectrum=None, with_noise=True):
 
         ### set variable params
         self.ctt.o(f"set var params", rank="Full")
+        if updateParams:
+            for param in self.variable_params.keys():
 
-        for param in self.variable_params.keys():
+                # set var params
+                if param[:4] != "arg.": 
 
-            # set var params
-            if param[:4] != "arg.": 
+                    self.__setattr__(param, self.variable_params[param][num_simu])
 
-                self.__setattr__(param, self.variable_params[param][num_simu])
+                # set var arg psf
+                else:
 
-            # set var arg psf
-            else:
-
-                num_arg, num_coef = self.var_arg[param]
-                self.psf_function['arg'][num_arg][num_coef] = self.variable_params[param][num_simu]
-
+                    num_arg, num_coef = self.var_arg[param]
+                    self.psf_function['arg'][num_arg][num_coef] = self.variable_params[param][num_simu]
         self.ctt.c(f"set var params")
 
         # set timbre
@@ -306,8 +307,11 @@ class SpecSimulator():
         self.ctt.c(f"Init simulate")
         
         self.ctt.o(f"Construction spectrum", rank="BlankS")
-        spectrum = self.simulate_spectrum() * self.A
+        spectrum = self.simulate_spectrum() * self.A if giveSpectrum is None else giveSpectrum / hparameters.CCD_GAIN / self.EXPOSURE
         self.ctt.c(f"Construction spectrum")
+
+        allXc = np.array([])
+        allYc = np.array([])
 
         for order, (tr, A) in self.order2make.items():
             
@@ -319,6 +323,8 @@ class SpecSimulator():
             X_p = self.disperser.dist_along_disp_axis[order]                                             + adr_x + self.R0[0]
             X_c = self.disperser.dist_along_disp_axis[order] * np.cos(self.ROTATION_ANGLE * np.pi / 180) + adr_x + self.R0[0]
             Y_c = self.disperser.dist_along_disp_axis[order] * np.sin(self.ROTATION_ANGLE * np.pi / 180) + adr_y + self.R0[1]
+            allXc = np.append(allXc, X_c)
+            allYc = np.append(allYc, Y_c)
             self.ctt.c(f"Compute dispersion & params")
 
             # Building PSF
@@ -374,7 +380,7 @@ class SpecSimulator():
             if self.colorSimu : data_image_RGB *= self.EXPOSURE
             self.ctt.c(f"convertADU")
 
-        if self.with_noise:
+        if self.with_noise and with_noise:
             self.ctt.o(f"noise", rank="imageC")
             data_image = self.add_poisson_and_read_out_noise(data_image)
             if self.colorSimu : 
@@ -385,17 +391,19 @@ class SpecSimulator():
         self.ctt.c(f"Image Computation")
 
         self.ctt.o(f"Save npy", rank="Full")
-        if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
-        np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
-        if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
-        spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
-        spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
-        np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
-        np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
-        np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
+        if self.savingFolders:
+            if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
+            np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
+            if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
+            spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+            spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+            np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
+            np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
+            np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
         self.ctt.c(f"Save npy")
 
-        return data_image, spectrum
+        if giveSpectrum is None : return data_image, spectrum
+        else : return data_image, spectrum, allXc, allYc
 
 
 
@@ -700,8 +708,6 @@ class SpecSimulator():
 
             ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, hparameters.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
             adr_ra, adr_dec = adr_calib(self.lambdas, ADR_PARAMS, hparameters.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
-
-            print(ADR_PARAMS, hparameters.OBS_LATITUDE, self.lambda_adr_ref)
 
             # flip_and_rotate_radec_vector_to_xy_vector of 
             flip = np.array([[hparameters.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, hparameters.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
