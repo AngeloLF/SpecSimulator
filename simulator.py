@@ -101,6 +101,7 @@ class SpecSimulator():
             os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
+            os.mkdir(f"{self.output_dir}/{self.save_fold}/opa")
         
         # Order 0 coord.
         self.R0 = hparameters.R0
@@ -400,6 +401,8 @@ class SpecSimulator():
             np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
             np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
             np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
+            np.save(f"{self.output_dir}/{self.save_fold}/opa/opa_{num_simu:0{self.len_simu}}.npy", np.array([self.ATM_OZONE, self.ATM_PWV, self.ATM_AEROSOLS]).astype(np.float32))
+
         self.ctt.c(f"Save npy")
 
         if giveSpectrum is None : return data_image, spectrum
