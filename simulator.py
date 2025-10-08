@@ -1,4 +1,4 @@
-import os, sys, shutil, json, pickle
+import os, sys, shutil, json, pickle, platform
 import numpy as np
 import matplotlib.pyplot as plt
 import coloralf as c
@@ -15,6 +15,7 @@ from utils_spec.load_disperser import MyDisperser
 
 import hparameters
 if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getObsAtmo
+
 
 
 

@@ -1,9 +1,11 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import time
-import sys
+import time, sys, platform
 import coloralf as c
+
+if platform.system() == "Darwin":
+    print(f"{c.r}WARNING : macOS detected. Package mouse doesnt work for mac : flash.py need a update{c.d}")
 
 import keyboard
 import mouse
