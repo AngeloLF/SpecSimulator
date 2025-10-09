@@ -5,7 +5,8 @@ import time, sys, platform
 import coloralf as c
 
 if platform.system() == "Darwin":
-    print(f"{c.r}WARNING : macOS detected. Package mouse doesnt work for mac : flash.py need a update{c.d}")
+    print(f"{c.r}WARNING : macOS detected. Package mouse doesnt work for mac : flash.py need an update{c.d}")
+    sys.exit()
 
 import keyboard
 import mouse
