@@ -83,7 +83,9 @@ class Hparams():
             "CCD_GAIN", # electronic gain : elec/ADU
             "CCD_REBIN", # rebinning of the image in pixel
             "DISTANCE2CCD", # distance between hologram and CCD in mm
-            "DISTANCE2CCD_ERR"]
+            "DISTANCE2CCD_ERR",
+
+            "DISPERSER"]
 
     __TELESCOPES = {
 
@@ -118,6 +120,9 @@ class Hparams():
             "CCD_REBIN" : 1,  # rebinning of the image in pixel
             "DISTANCE2CCD" : 55.45,  # distance between hologram and CCD in mm
             "DISTANCE2CCD_ERR" : 0.19,  # uncertainty on distance between hologram and CCD in mm
+
+            # Disperser
+            "DISPERSER" : "HoloAmAg",
         },
 
         # StarDice
@@ -151,9 +156,12 @@ class Hparams():
             "CCD_REBIN" : 1,  # rebinning of the image in pixel
             "DISTANCE2CCD" : 33.3,  # distance between hologram and CCD in mm
             "DISTANCE2CCD_ERR" : 0.1,  # uncertainty on distance between hologram and CCD in mm
+
+            # Disperser
+            "DISPERSER" : "star_analyzer_200",
         },
 
-        # StarDice
+        # auxtel
         "auxtel" : {
 
             # Simu parameters
@@ -184,6 +192,9 @@ class Hparams():
             "CCD_REBIN" : 1,  # rebinning of the image in pixel
             "DISTANCE2CCD" : 187.1,  # distance between hologram and CCD in mm
             "DISTANCE2CCD_ERR" : 0.05,  # uncertainty on distance between hologram and CCD in mm
+
+            # Disperser
+            "DISPERSER" : "holo4_003",
         }
     }
 
@@ -238,7 +249,7 @@ class Hparams():
 
     def __init__(self, telescope=None, target_set=None, psf=None, var_params=dict(), nsimu=None, with_noise=True,
                  lambdas=[300, 1100], lambdas_step=1, atmo_model="getobsatmo", flam2adurate=1_067_400_516_204.6393,
-                 disperser_dir="./SpecSimulator/datafile/dispersers", disperser="HoloAmAg",
+                 disperser_dir="./SpecSimulator/datafile/dispersers",
                  throughput_dir="./SpecSimulator/datafile/throughput",
                  output_path=".", output_dir = "results", output_simu_dir="output_simu", output_simu_fold="simulation"):
 
@@ -260,7 +271,6 @@ class Hparams():
         self.FLAM_TO_ADURATE = flam2adurate
         self.SPECTRACTOR_ATMOSPHERE_SIM = atmo_model
         self.DISPERSER_DIR = disperser_dir
-        self.DISPERSER = disperser
         self.THROUGHPUT_DIR = throughput_dir
         self.CCD_ARCSEC2RADIANS = 1 / 180 * np.pi / 3600
         self.GRATING_ORDER_2OVER1 = 0.1  # default value for order 2 over order 1 transmission ratio

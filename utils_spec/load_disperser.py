@@ -4,7 +4,7 @@ from scipy import interpolate
 from astropy.modeling import models, fitting
 import warnings
 import matplotlib.pyplot as plt
-
+import coloralf as c
 
 
 
@@ -191,14 +191,29 @@ class MyDisperser():
             self.ratio_order_3over1 = None     
             
         # Load grating
-        filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/hologram_grooves_per_mm.txt"
-        a = np.loadtxt(filename)
-        self.N_x, self.N_y, N_data = a.T
-        if self.hp.CCD_REBIN > 1:
-            self.N_x /= self.hp.CCD_REBIN
-            self.N_y /= self.hp.CCD_REBIN
-        self.N_interp = interpolate.CloughTocher2DInterpolator((self.N_x, self.N_y), N_data)
-        self.N_fit = self.fit_poly2d(self.N_x, self.N_y, N_data, order=2)
+        filedef = "hologram_grooves_per_mm.txt"
+
+        if filedef in os.listdir(f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}"):
+
+            print(f"{c.y}INFO [load_disperser.py] : use {filedef} for load the grating of {self.hp.DISPERSER}{c.d}")
+            filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/{filedef}"
+            a = np.loadtxt(filename)
+            self.N_x, self.N_y, N_data = a.T
+            if self.hp.CCD_REBIN > 1:
+                self.N_x /= self.hp.CCD_REBIN
+                self.N_y /= self.hp.CCD_REBIN
+            self.N_interp = interpolate.CloughTocher2DInterpolator((self.N_x, self.N_y), N_data)
+            self.N_fit = self.fit_poly2d(self.N_x, self.N_y, N_data, order=2)
+
+        else:
+            # use N.txt
+            print(f"{c.y}INFO [load_disperser.py] : use N.txt for load the grating of {self.hp.DISPERSER}{c.d}")
+            filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/N.txt"
+            N, N_err = np.loadtxt(filename)
+            self.N_x = np.arange(0, self.hp.SIM_NX)
+            self.N_y = np.arange(0, self.hp.SIM_NY)
+            self.N_interp = lambda x, y: N
+            self.N_fit = lambda x, y: N
 
         # make distance_along_disp_axis:
         self.dist_along_disp_axis = list()
