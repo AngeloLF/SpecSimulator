@@ -6,7 +6,6 @@ from astropy import units as u
 from astropy.coordinates import Latitude
 from scipy.integrate import simpson
 import numpy as np
-import hparameters
 
 """
 Atmospheric Differential Refraction: Evolution of the spatial position as a function of wavelength.
@@ -294,7 +293,7 @@ Example to get shift in pixels:
 # ================================= #
 
 
-def adr_calib(lambdas, params, lat, lambda_ref=550):
+def adr_calib(hp, lambdas, params, lat, lambda_ref=550):
     
     if isinstance(lat, str) or isinstance(lat, float):
         lat = AC.Latitude(lat, unit=u.deg)
@@ -306,8 +305,8 @@ def adr_calib(lambdas, params, lat, lambda_ref=550):
     meadr = instanciation_adr(params, lat, lambda_ref * 10)
 
     disp_axis, trans_axis = get_adr_shift_for_lbdas(meadr, lambdas * 10)
-    disp_axis_pix = in_pixel(disp_axis)
-    trans_axis_pix = in_pixel(trans_axis)
+    disp_axis_pix = in_pixel(hp.CCD_PIXEL2ARCSEC, disp_axis)
+    trans_axis_pix = in_pixel(hp.CCD_PIXEL2ARCSEC, trans_axis)
 
     return disp_axis_pix, trans_axis_pix
 
@@ -352,13 +351,13 @@ def get_adr_shift_for_lbdas(adr_object, lbdas):
 # ================================= #
 
 
-def in_pixel(thing_in_arcsec):
+def in_pixel(CCD_PIXEL2ARCSEC, thing_in_arcsec):
     """
     Transform something in arcsec in pixels
     """
 
-    xpixsize = hparameters.CCD_PIXEL2ARCSEC
-    ypixsize = hparameters.CCD_PIXEL2ARCSEC
+    xpixsize = CCD_PIXEL2ARCSEC
+    ypixsize = CCD_PIXEL2ARCSEC
 
     if xpixsize != ypixsize:
         raise ValueError('Pixels in X and Y do not have the same length, too complicated, did not work')

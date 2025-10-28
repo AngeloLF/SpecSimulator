@@ -13,8 +13,7 @@ from utils_spec.ctTime import ctTime
 from utils_spec.adr import adr_calib
 from utils_spec.load_disperser import MyDisperser
 
-import hparameters
-if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getObsAtmo
+# if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getObsAtmo
 
 
 
@@ -25,10 +24,8 @@ class SpecSimulator():
     ---
     """
 
-    def __init__(self, psf_function, var_params=dict(), output_path='./results', output_dir='output_simu', output_fold='simulation', input_argv=list(),
-                    with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True, with_noise=True,
-                    overwrite=True, show_times=True, show_specs=True, target_set="set0", mode4variable="rdm", verbose=2,
-                    nb_simu=10, disperser_name=None, savingFolders=True):
+    def __init__(self, hparameters, with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True,
+                    show_times=True, show_specs=True, savingFolders=True, overwrite=True, verbose=2):
 
         """
         verbose :
@@ -40,44 +37,34 @@ class SpecSimulator():
 
         time_init = time()
 
+        # Save hparams
+        self.hp = hparameters
+
+
         # PSF function and output_dir for simulation results.
-        self.psf_function = psf_function
-        if output_dir not in os.listdir(output_path) : os.mkdir(f"{output_path}/{output_dir}")
-        self.output_dir = f"{output_path}/{output_dir}"
+        self.psf_function = self.hp.psf
+        if self.hp.output_dir not in os.listdir(self.hp.output_path) : os.mkdir(f"{self.hp.output_path}/{self.hp.output_dir}")
+        self.output_dir = f"{self.hp.output_path}/{self.hp.output_dir}"
 
         # Parameters define by sys.argv
-        self.nb_simu_base = nb_simu
+        self.nb_simu = self.hp.nsimu
+        self.len_simu = len(str(self.nb_simu-1))
+
         self.show_times = show_times
         self.show_specs = show_specs
         self.overwrite = overwrite
-        self.target_set = target_set
-        self.mode4variable = mode4variable
-        self.output_fold = output_fold
+        self.output_fold = self.hp.output_fold
         self.verbose = verbose
-        self.colorSimu = False
-        self.no0 = False # no order 0
-        for argv in input_argv:
-            if argv[0] == "x" : self.nb_simu_base = int(argv[1:])
-            if argv[1:] == 'times' : self.show_times = True if argv[0] == '+' else False
-            if argv[1:] == 'specs' : self.show_specs = True if argv[0] == '+' else False
-            if argv[1:] in ['overwrite', 'ow'] : self.overwrite = True if argv[0] == '+' else False
-            if argv[:3] == 'set' : self.target_set = argv
-            if argv in ["rdm", "lsp"] : self.mode4variable = argv
-            if argv[:2] == 'f=' : self.output_fold = argv[2:]
-            if argv[:2] == 'v=' : self.verbose = int(argv[2:])
-            if argv[:5] == 'disp=' : disperser_name = argv[5:]
-            if argv == "no0" : self.no0 = True
-            if argv == "color" : self.colorSimu = True
+        self.colorSimu = False if "color" not in self.hp.argv["__free__"] else True
+        self.no0 = False if "no0" not in self.hp.argv["__free__"] else True # no order 0
 
-        self.nb_simu = self.nb_simu_base if self.mode4variable == 'rdm' else self.nb_simu_base * len(hparameters.TARGETS_NAME[self.target_set])
-        self.len_simu = len(str(self.nb_simu-1))
 
         # Initialisation
         if self.verbose >= 0: 
             print(f"{c.y}\nInitialisation of SpecSimulator at {c.d}{c.ly}{c.ti}{ctime()}{c.d}{c.d}")
 
         # Define variables parameters for the simulation
-        self.init_var_params(var_params)
+        self.init_var_params()
         if self.no0 : self.A0 = 0.0
 
         # Define output directory
@@ -105,11 +92,11 @@ class SpecSimulator():
             os.mkdir(f"{self.output_dir}/{self.save_fold}/opa")
         
         # Order 0 coord.
-        self.R0 = hparameters.R0
+        self.R0 = self.hp.R0
 
         # Simulation size
-        self.Nx = hparameters.SIM_NX
-        self.Ny = hparameters.SIM_NY
+        self.Nx = self.hp.SIM_NX
+        self.Ny = self.hp.SIM_NY
         self.xpixels = np.arange(0, self.Nx)
         self.yy, self.xx = np.mgrid[:self.Ny, :self.Nx].astype(np.int32)
         self.pixels = np.asarray([self.xx, self.yy])
@@ -118,15 +105,15 @@ class SpecSimulator():
         self.ctt = ctTime("SpecSimulation", verbose=self.show_times, nbLoop=self.nb_simu)
 
         # Definition of lambdas
-        self.N = hparameters.N
-        self.lambdas = hparameters.LAMBDAS
+        self.N = self.hp.N
+        self.lambdas = self.hp.LAMBDAS
         self.lambda_adr_ref = 550 #550
 
         # Loading Disperser, Amplitude and transmission ratio
-        self.disperser_name = disperser_name if disperser_name is not None else hparameters.DISPERSER 
+        self.disperser_name = self.hp.DISPERSER 
         if self.verbose >= 0 : print(f"Loading disperser {c.ti}{self.disperser_name}{c.d}")
         self.As = [0.0, self.A1, self.A2, self.A3]
-        self.disperser = MyDisperser(self.disperser_name, self.As, self.lambdas, self.R0)
+        self.disperser = MyDisperser(self.hp, self.As, self.lambdas, self.R0)
         self.tr = [None] + self.giveTr()
         self.order2make = {order:[tr, A] for order, (tr, A) in enumerate(zip(self.tr, self.As)) if tr is not None and A != 0.0}
 
@@ -136,14 +123,14 @@ class SpecSimulator():
         self.with_background = with_background
         self.with_flat = with_flat
         self.with_convertADU = with_convertADU
-        self.with_noise = with_noise
+        self.with_noise = self.hp.with_noise
         if self.verbose >= 0 : print(f"With noise : {c.ti}{self.with_noise}{c.d}")
 
         # Loading telescope transmission
         self.telescope_transmission = self.loading_tel_transmission()
 
         # Loading target spectrum
-        self.target_spectrum = self.loading_target_spectrum(hparameters.TARGETS_NAME[self.target_set])
+        self.target_spectrum = self.loading_target_spectrum(self.hp.target_name)
         
         # Loading flat
         self.flat = self.loading_flat()
@@ -186,7 +173,7 @@ class SpecSimulator():
         pbar.close()
 
         self.json_save(self.historic_params, 'hist_params')
-        self.json_save(self.hp_params,  'hparams')
+        # self.json_save(self.hp_params,  'hparams')
 
         with open(f"{self.output_dir}/{self.save_fold}/variable_params.pck", "wb") as f:
             pickle.dump(self.variable_params, f)
@@ -202,77 +189,94 @@ class SpecSimulator():
 
 
         # view some specs in divers/
-        if self.show_specs and self.nb_simu >= 10:
+        if self.show_specs:
 
-            # image
-            plt.figure(figsize=(16, 12))
-            files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:10]
-
+            # few single image
+            nbSingleImage = min(4, self.nb_simu)
+            files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:nbSingleImage]
+            
             for i, file in enumerate(files):
-                img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
-                plt.subplot(5, 2, i+1)
+                plt.figure(figsize=(16, 12))
+                img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
                 plt.imshow(np.log10(img+1), cmap='gray', origin='lower')
                 plt.title(self.variable_params['TARGET'][i])
-                plt.axis('off')
+                plt.xlabel(r"$\lambda$ (nm)")
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/image_single_{i}.png")
+                plt.close()
 
-            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
-            plt.close()
 
-            # image RGB
-            if self.colorSimu:
+            if self.nb_simu >= 10:
+
+                # image
                 plt.figure(figsize=(16, 12))
-                files = os.listdir(f"{self.output_dir}/{self.save_fold}/imageRGB")[:10]
+                files = os.listdir(f"{self.output_dir}/{self.save_fold}/image")[:10]
 
                 for i, file in enumerate(files):
-                    img = np.load(f"{self.output_dir}/{self.save_fold}/imageRGB/{file}") / len(self.lambdas)
-                    img /= np.max(img)
+                    img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
 
                     plt.subplot(5, 2, i+1)
-                    plt.imshow(img, origin='lower')
+                    plt.imshow(np.log10(img+1), cmap='gray', origin='lower')
                     plt.title(self.variable_params['TARGET'][i])
                     plt.axis('off')
 
-                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/imagesRGB.png")
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/images.png")
                 plt.close()
 
-            # spectro
-            plt.figure(figsize=(16, 12))
-            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectro")[:10]
+                # image RGB
+                if self.colorSimu:
+                    plt.figure(figsize=(16, 12))
+                    files = os.listdir(f"{self.output_dir}/{self.save_fold}/imageRGB")[:10]
 
-            for i, file in enumerate(files):
-                img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
+                    for i, file in enumerate(files):
+                        img = np.load(f"{self.output_dir}/{self.save_fold}/imageRGB/{file}") / len(self.lambdas)
+                        img /= np.max(img)
 
-                plt.subplot(5, 2, i+1)
-                plt.imshow(img+1, cmap='gray', origin='lower')
-                plt.title(self.variable_params['TARGET'][i])
-                plt.axis('off')
+                        plt.subplot(5, 2, i+1)
+                        plt.imshow(img, origin='lower')
+                        plt.title(self.variable_params['TARGET'][i])
+                        plt.axis('off')
 
-            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectro.png")
-            plt.close()
+                    plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/imagesRGB.png")
+                    plt.close()
 
-            # spectrum
-            plt.figure(figsize=(24, 12))
-            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
-            for i, file in enumerate(files):
-                title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
-                spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
-                plt.plot(self.lambdas, spec, label=', '.join(title))
-            plt.legend()
-            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrum.png")
-            plt.close()
+                # spectro
+                plt.figure(figsize=(16, 12))
+                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectro")[:10]
+
+                for i, file in enumerate(files):
+                    img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
+
+                    plt.subplot(5, 2, i+1)
+                    plt.imshow(img+1, cmap='gray', origin='lower')
+                    plt.title(self.variable_params['TARGET'][i])
+                    plt.axis('off')
+
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectro.png")
+                plt.close()
+
+                # spectrum
+                plt.figure(figsize=(24, 12))
+                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrum")[:10]
+                for i, file in enumerate(files):
+                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
+                    spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrum/{file}")
+                    plt.plot(self.lambdas, spec, label=', '.join(title))
+                plt.legend()
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrum.png")
+                plt.close()
 
 
-            # spectrumPX
-            plt.figure(figsize=(24, 12))
-            files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")[:10]
-            for i, file in enumerate(files):
-                title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
-                spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrumPX/{file}")
-                plt.plot(self.xpixels, spec, label=', '.join(title))
-            plt.legend()
-            plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrumPX.png")
-            plt.close()
+                # spectrumPX
+                plt.figure(figsize=(24, 12))
+                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")[:10]
+                for i, file in enumerate(files):
+                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
+                    spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrumPX/{file}")
+                    plt.plot(self.xpixels, spec, label=', '.join(title))
+                plt.legend()
+                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrumPX.png")
+                plt.close()
 
 
     def makeSim(self, num_simu, updateParams=True, giveSpectrum=None, with_noise=True):
@@ -284,13 +288,11 @@ class SpecSimulator():
 
                 # set var params
                 if param[:4] != "arg.": 
-
                     self.__setattr__(param, self.variable_params[param][num_simu])
 
                 # set var arg psf
                 else:
-
-                    num_arg, num_coef = self.var_arg[param]
+                    num_arg, num_coef = self.hp.aparams[param]
                     self.psf_function['arg'][num_arg][num_coef] = self.variable_params[param][num_simu]
         self.ctt.c(f"set var params")
 
@@ -394,11 +396,11 @@ class SpecSimulator():
 
         self.ctt.o(f"Save npy", rank="Full")
         if self.savingFolders:
-            if hparameters.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
+            if self.hp.OBS_NAME == "AUXTEL" : data_image = data_image.T[::-1, ::-1]
             np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
             if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
-            spectrum_to_save = (spectrum * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
-            spectro_deconv_to_save = (spectro_deconv * hparameters.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+            spectrum_to_save = (spectrum * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+            spectro_deconv_to_save = (spectro_deconv * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
             np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
             np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
             np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
@@ -423,7 +425,7 @@ class SpecSimulator():
             spectrum *= self.disperser.transmission(self.lambdas)
             spectrum *= self.telescope_transmission(self.lambdas)
             if self.with_atmosphere : spectrum *= self.atm(self.lambdas)
-            spectrum *= hparameters.FLAM_TO_ADURATE * self.lambdas * np.gradient(self.lambdas)
+            spectrum *= self.hp.FLAM_TO_ADURATE * self.lambdas * np.gradient(self.lambdas)
         self.ctt.c(f"multiplier")
 
         return spectrum
@@ -436,19 +438,19 @@ class SpecSimulator():
 
         argmin = max(0,  int(np.argmin(np.abs(X_c))))
         argmax = min(self.Nx, np.argmin(np.abs(X_c-self.Nx)) + 1)
-        psf_cube = np.zeros((hparameters.SIM_NY, hparameters.SIM_NX), dtype=dtype)  
+        psf_cube = np.zeros((self.hp.SIM_NY, self.hp.SIM_NX), dtype=dtype)  
         timbreX = np.zeros((int(timbre_size*2), int(timbre_size*2)), dtype=dtype)
         timbreY = np.zeros((int(timbre_size*2), int(timbre_size*2)), dtype=dtype)
-        psf_cube_RGB = np.zeros((hparameters.SIM_NY, hparameters.SIM_NX, 3), dtype=dtype) if self.colorSimu else None
+        psf_cube_RGB = np.zeros((self.hp.SIM_NY, self.hp.SIM_NX, 3), dtype=dtype) if self.colorSimu else None
         self.ctt.c(f"init cube")
 
         for x in range(argmin, argmax):
 
             self.ctt.o(f"find min/max", rank='bpc')
             xmin = max(0, int(X_c[x]                  - timbre_size))
-            xmax = min(hparameters.SIM_NX, int(X_c[x] + timbre_size))
+            xmax = min(self.hp.SIM_NX, int(X_c[x] + timbre_size))
             ymin = max(0, int(Y_c[x]                  - timbre_size))
-            ymax = min(hparameters.SIM_NY, int(Y_c[x] + timbre_size))
+            ymax = min(self.hp.SIM_NY, int(Y_c[x] + timbre_size))
             self.ctt.c(f"find min/max")
 
             self.ctt.o(f"Xpix, Ypix", rank='bpc')
@@ -478,84 +480,43 @@ class SpecSimulator():
 
 
 
-    def init_var_params(self, var_params):
+    def init_var_params(self):
 
         # Pour ce souvenir des paramètres utlisé
-        self.historic_params = {'nb_simu':self.nb_simu, 'target_set':hparameters.TARGETS_NAME[self.target_set], 'mode4variable':self.mode4variable}
+        self.historic_params = {'nb_simu': self.nb_simu, 'target_set':self.hp.target_name}
 
-        # On calcule les vecteurs pour les paramètres variables
-        if self.mode4variable == 'lsp':
-            # Mode linspace
-            nb_target = len(hparameters.TARGETS_NAME[self.target_set])
-            self.variable_params = {'TARGET' : np.concatenate(np.array([[targ]*self.nb_simu_base for targ in hparameters.TARGETS_NAME[self.target_set]])).astype(str)}
-            func4variable = np.linspace
-        elif self.mode4variable == 'rdm':
-            # Mode random uniform
-            self.variable_params = {'TARGET' : np.random.choice(hparameters.TARGETS_NAME[self.target_set], self.nb_simu)}
-            func4variable = np.random.uniform
-        else:
-            # Mode inexistant
-            func4variable = None
-            print(f"{c.r}WARNING : mode {self.mode4variable} not exist. Should be `rdm` or `lsp`.{c.d}")
+        # On calcule les vecteurs pour les paramètres variables	
+        self.variable_params = {'TARGET' : np.random.choice(self.hp.target_name, self.nb_simu)}
 
         # On parcoure toute les parametres de hparameters qui peuvent etre variable
-        for param, value in hparameters.VARIABLE_PARAMS.items():
+        for param, value in self.hp.vparams.items():
 
-            # Les parametres mis en variable dans le dict d'entrée
-            if param in var_params and isinstance(var_params[param], (list)):
+            if self.verbose > 1: print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{value}{c.d}")
+            self.historic_params[param] = value
+            self.variable_params[param] = np.random.uniform(*value, self.nb_simu)
 
-                if self.verbose > 1: 
-                    print(f"Set var param {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
+        # Les variables renseigné dans le dict d'entrée mais non variables
+        for param, value in self.hp.cparams.items():
 
-                self.historic_params[param] = var_params[param]
-                if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu_base) for _ in range(nb_target)])
-                elif self.mode4variable == 'rdm' : self.variable_params[param] = func4variable(*var_params[param], self.nb_simu)
+            if self.verbose > 1: print(f"Set fix param {c.m}{param}{c.d} to {c.m}{value}{c.d}")
+            self.historic_params[param] = value
+            self.__setattr__(param, value)
 
-            # Les variables renseigné dans le dict d'entrée mais non variables
-            elif param in var_params and isinstance(var_params[param], (int, float)):
+        # Les variables d'args de la psf function, on s'occupe ici des variation des paramètres de moffat
+        for param, value in self.hp.vparams.items():
 
-                if self.verbose > 1: 
-                    print(f"Set fix param {c.m}{param}{c.d} to {c.m}{var_params[param]}{c.d} (from var_params)")
-                self.historic_params[param] = var_params[param]
-                self.__setattr__(param, var_params[param])
-
-            # Les varaibles non renseigné, on met donc la valeur de défault situé dans hparameters
-            else:
-
-                self.__setattr__(param, value)
-                self.historic_params[param] = value
-
-        # On s'occupe ici des variation des paramètres de moffat
-        var_args = [var for var in var_params if var[:4] == 'arg.']
-        self.var_arg = dict()
-
-        for param in var_args:
-
-            if self.verbose > 1: 
-                print(f"Set var argu. {c.lm}{param}{c.d} to range {c.lm}{var_params[param]}{c.d}")
-
-            num_arg, num_coef = param.split('.')[1:]
-            self.var_arg[param] = [int(num_arg), int(num_coef)]
-            self.historic_params[param] = var_params[param]
-            if   self.mode4variable == 'lsp' : self.variable_params[param] = np.concatenate([func4variable(*var_params[param], self.nb_simu) for _ in range(nb_target)])
-            elif self.mode4variable == 'rdm' : self.variable_params[param] = func4variable(*var_params[param], self.nb_simu)            
-
-        # Enfin, on garde en mémoire tout les autres variables présente dans hparameters
-        self.hp_params = dict()
-
-        for hp in dir(hparameters):
-
-            if '__' not in hp and isinstance(hparameters.__getattribute__(hp), (int, str, float)):
-                self.hp_params[hp] = hparameters.__getattribute__(hp)
+            if self.verbose > 1: print(f"Set args params {c.m}{param}{c.d} to {c.m}{value}{c.d}")
+            self.historic_params[param] = value
+            self.variable_params[param] = np.random.uniform(*value, self.nb_simu)
 
 
 
-    def loading_tel_transmission(self, throughput_dir=hparameters.THROUGHPUT_DIR):
+    def loading_tel_transmission(self):
         """
         Méthode pour load la transmission du telescope 
         """
 
-        filename = f"{throughput_dir}/{hparameters.THROUGHPUT}"
+        filename = f"{self.hp.THROUGHPUT_DIR}/{self.hp.THROUGHPUT}"
         data = np.loadtxt(filename).T
         lambdas = data[0]
         sorted_indices = lambdas.argsort()
@@ -710,15 +671,25 @@ class SpecSimulator():
 
         if self.with_adr:
 
-            ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, hparameters.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
-            adr_ra, adr_dec = adr_calib(self.lambdas, ADR_PARAMS, hparameters.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
+            ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, self.hp.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
+            adr_ra, adr_dec = adr_calib(self.hp, self.lambdas, ADR_PARAMS, self.hp.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
 
             # flip_and_rotate_radec_vector_to_xy_vector of 
-            flip = np.array([[hparameters.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, hparameters.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
-            a = - hparameters.OBS_CAMERA_ROTATION * np.pi / 180 # minus sign as rotation matrix is apply on the right on the adr vector
+            flip = np.array([[self.hp.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, self.hp.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
+            a = - self.hp.OBS_CAMERA_ROTATION * np.pi / 180 # minus sign as rotation matrix is apply on the right on the adr vector
             rotation = np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]], dtype=float)
+
             transformation = flip @ rotation
             adr_x, adr_y = (np.asarray([adr_ra, adr_dec]).T @ transformation).T
+
+            if "debug" in sys.argv:
+                print("flip, a, rotation, transformation")
+                print(flip, "\n", a, "\n", rotation, "\n", transformation)
+                print(f"Here ADR XY with order with size : {np.shape(adr_x)}")
+                plt.plot(adr_ra, c="r", label="adrx")
+                plt.plot(adr_dec, c="g", label="adry")
+                plt.show()
+
 
             # flip_and_rotate_adr_to_image_xy_coordinates
             if not np.isclose(dispersion_axis_angle, 0, atol=0.001):
@@ -726,12 +697,13 @@ class SpecSimulator():
                 a = - dispersion_axis_angle * np.pi / 180
                 rotation = np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]], dtype=float)
                 adr_x, adr_y = (np.asarray([adr_x, adr_y]).T @ rotation).T
-
             # self.adr_x, self.adr_y = flip_and_rotate_adr_to_image_xy_coordinates(self.adr_ra, self.adr_dec, dispersion_axis_angle=0)
         else:
             adr_x = np.zeros_like(self.disperser.dist_along_disp_axis)
             adr_y = np.zeros_like(self.disperser.dist_along_disp_axis)
 
+
+        
         return adr_x, adr_y
 
     def npy_save(self, dico, savefile):
@@ -766,15 +738,15 @@ class SpecSimulator():
 
         d = np.copy(data).astype(np.float32)
         # convert to electron counts
-        d *= hparameters.CCD_GAIN
+        d *= self.hp.CCD_GAIN
 
         # Poisson noise
         noisy = np.random.poisson(d).astype(np.float32)
         # Add read-out noise is available
-        if self.CCD_READ_OUT_NOISE is not None:
-            noisy += np.random.normal(scale=self.CCD_READ_OUT_NOISE*np.ones_like(noisy)).astype(np.float32)
+        if self.hp.cparams["CCD_READ_OUT_NOISE"] is not None:
+            noisy += np.random.normal(scale=self.hp.cparams["CCD_READ_OUT_NOISE"]*np.ones_like(noisy)).astype(np.float32)
         # reconvert to ADU
-        data = noisy / hparameters.CCD_GAIN
+        data = noisy / self.hp.CCD_GAIN
         # removes zeros
         min_noz = np.min(data[data > 0])
         data[data <= 0] = min_noz
@@ -784,13 +756,15 @@ class SpecSimulator():
 
     def load_atm_transmission(self):
 
-        if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo":
+        if self.hp.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo":
 
-            if not getObsAtmo.is_obssite(hparameters.OBS_NAME):
-                raise ValueError(f"getObsAtmo does not have observatory site {hparameters.OBS_NAME}.")
+            import getObsAtmo
+
+            if not getObsAtmo.is_obssite(self.hp.OBS_NAME):
+                raise ValueError(f"getObsAtmo does not have observatory site {self.hp.OBS_NAME}.")
 
             self.ctt.o(f"emulator", rank='load atm')
-            self.emulator = getObsAtmo.ObsAtmo(obs_str=hparameters.OBS_NAME, pressure=hparameters.OBS_PRESSURE)
+            self.emulator = getObsAtmo.ObsAtmo(obs_str=self.hp.OBS_NAME, pressure=self.hp.OBS_PRESSURE)
             self.emulator.lambda0 = 500.
             self.ctt.c("emulator")
 
@@ -800,7 +774,7 @@ class SpecSimulator():
 
         else:
 
-            raise ValueError(f"Unknown value for {hparameters.SPECTRACTOR_ATMOSPHERE_SIM=}.")
+            raise ValueError(f"Unknown value for {self.hp.SPECTRACTOR_ATMOSPHERE_SIM=}.")
 
 
         return transmission
