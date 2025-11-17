@@ -1,0 +1,108 @@
+{
+    "CCD_ARCSEC2RADIANS": 4.84813681109536e-06,
+    "CCD_GAIN": 1.3,
+    "CCD_MAXADU": 60000,
+    "CCD_PIXEL2ARCSEC": 0,
+    "CCD_PIXEL2MM": 0,
+    "CCD_REBIN": 2,
+    "DISPERSER": "holo4_003",
+    "DISPERSER_DIR": "./SpecSimulator/datafile/dispersers",
+    "DISTANCE2CCD": 187.1,
+    "DISTANCE2CCD_ERR": 0.05,
+    "FLAM_TO_ADURATE": 1067400516204.6393,
+    "GRATING_ORDER_2OVER1": 0.1,
+    "LAMBDA_MAX": 1100,
+    "LAMBDA_MIN": 300,
+    "LAMBDA_STEP": 1,
+    "N": 800,
+    "OBS_ALTITUDE": 2.66299616375123,
+    "OBS_CAMERA_DEC_FLIP_SIGN": 1,
+    "OBS_CAMERA_RA_FLIP_SIGN": 1,
+    "OBS_CAMERA_ROTATION": 0,
+    "OBS_EPOCH": "J2000.0",
+    "OBS_FULL_INSTRUMENT_TRANSMISSON": "multispectra_holo4_003_HD142331_AuxTel_throughput.txt",
+    "OBS_LATITUDE": "-30 14 40.7",
+    "OBS_NAME": "LSST",
+    "OBS_OBJECT_TYPE": "STAR",
+    "OBS_PRESSURE": 731.5,
+    "OBS_SURFACE": 9636.0,
+    "OBS_TRANSMISSION_SYSTEMATICS": 0.005,
+    "R0": [
+        128,
+        128
+    ],
+    "SIM_NX": 2048,
+    "SIM_NY": 256,
+    "SPECTRACTOR_ATMOSPHERE_SIM": "getobsatmo",
+    "THROUGHPUT": "AuxTelThroughput/multispectra_holo4_003_HD142331_AuxTel_throughput.txt",
+    "THROUGHPUT_DIR": "./SpecSimulator/datafile/throughput",
+    "aparams": {
+        "arg.0.0": [
+            0,
+            0
+        ]
+    },
+    "argv": {
+        "__free__": [],
+        "tel": "auxtel",
+        "set": "set1"
+    },
+    "cparams": {
+        "A0": 1.0,
+        "A1": 1.0,
+        "A2": 1.0,
+        "A3": 0.0,
+        "ATM_AEROSOLS": 0.05,
+        "ATM_OZONE": 300.0,
+        "ATM_PWV": 5.0,
+        "ATM_AIRMASS": 1.2,
+        "ATM_ANGSTROM_EXPONENT": 1.2,
+        "ATM_TEMPERATURE": 8.6,
+        "ATM_HUMIDITY": 25,
+        "ADR_DEC": -18.6,
+        "ADR_HOUR_ANGLE": 28.2,
+        "EXPOSURE": 120.0,
+        "BACKGROUND_LEVEL": 0.5,
+        "CCD_READ_OUT_NOISE": 12.0
+    },
+    "nsimu": 10,
+    "oldR0": [
+        256,
+        256
+    ],
+    "oldSIM_NX": 4096,
+    "oldSIM_NY": 512,
+    "output_dir": "output_simu",
+    "output_fold": "simulation",
+    "output_path": "./results",
+    "psf_function": "moffat2d",
+    "target_name": [
+        "HD074000",
+        "HD116405",
+        "HD128998",
+        "HD172728",
+        "HD180609",
+        "HD2811",
+        "HD37725",
+        "HD55677",
+        "HD60753",
+        "HD93521"
+    ],
+    "target_set": "set1",
+    "telescope": "auxtel",
+    "vparams": {
+        "A": [
+            0.5,
+            2.0
+        ],
+        "ROTATION_ANGLE": [
+            -1.0,
+            1.0
+        ],
+        "arg.0.0": [
+            2.0,
+            8.0
+        ]
+    },
+    "with_noise": true
+}

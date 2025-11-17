@@ -1,4 +1,4 @@
-import os, sys, shutil, json, pickle, platform
+import os, sys, shutil, json, platform
 import numpy as np
 import matplotlib.pyplot as plt
 import coloralf as c
@@ -13,8 +13,6 @@ from utils_spec.ctTime import ctTime
 from utils_spec.adr import adr_calib
 from utils_spec.load_disperser import MyDisperser
 
-# if hparameters.SPECTRACTOR_ATMOSPHERE_SIM.lower() == "getobsatmo" : import getObsAtmo
-
 
 
 
@@ -25,7 +23,7 @@ class SpecSimulator():
     """
 
     def __init__(self, hparameters, with_adr=True, with_atmosphere=True, with_background=True, with_flat=True, with_convertADU=True,
-                    show_times=True, show_specs=True, savingFolders=True, overwrite=True, verbose=2):
+                    show_times=True, show_specs=True, savingFolders=True, overwrite=True, verbose=2, spectroData=False):
 
         """
         verbose :
@@ -57,6 +55,7 @@ class SpecSimulator():
         self.verbose = verbose
         self.colorSimu = False if "color" not in self.hp.argv["__free__"] else True
         self.no0 = False if "no0" not in self.hp.argv["__free__"] else True # no order 0
+        self.spectroData = spectroData
 
 
         # Initialisation
@@ -84,8 +83,9 @@ class SpecSimulator():
                 print(f"{c.y}Create folder {self.output_dir}/{self.save_fold}{c.d}")
             os.mkdir(f"{self.output_dir}/{self.save_fold}")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrum")
-            os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
-            os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
+            if self.spectroData: 
+                os.mkdir(f"{self.output_dir}/{self.save_fold}/spectro")
+                os.mkdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/image")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
@@ -172,11 +172,8 @@ class SpecSimulator():
             times.append(time()-t0)
         pbar.close()
 
-        self.json_save(self.historic_params, 'hist_params')
-        # self.json_save(self.hp_params,  'hparams')
-
-        with open(f"{self.output_dir}/{self.save_fold}/variable_params.pck", "wb") as f:
-            pickle.dump(self.variable_params, f)
+        self.hp.save() # self.json_save(self.historic_params, 'hist_params')
+        np.savez(f"{self.output_dir}/{self.save_fold}/vparams.npz", **self.variable_params)
 
         if self.show_times:
             self.ctt.result()
@@ -241,19 +238,20 @@ class SpecSimulator():
                     plt.close()
 
                 # spectro
-                plt.figure(figsize=(16, 12))
-                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectro")[:10]
+                if self.spectroData:
+                    plt.figure(figsize=(16, 12))
+                    files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectro")[:10]
 
-                for i, file in enumerate(files):
-                    img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
+                    for i, file in enumerate(files):
+                        img = np.load(f"{self.output_dir}/{self.save_fold}/spectro/{file}")
 
-                    plt.subplot(5, 2, i+1)
-                    plt.imshow(img+1, cmap='gray', origin='lower')
-                    plt.title(self.variable_params['TARGET'][i])
-                    plt.axis('off')
+                        plt.subplot(5, 2, i+1)
+                        plt.imshow(img+1, cmap='gray', origin='lower')
+                        plt.title(self.variable_params['TARGET'][i])
+                        plt.axis('off')
 
-                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectro.png")
-                plt.close()
+                    plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectro.png")
+                    plt.close()
 
                 # spectrum
                 plt.figure(figsize=(24, 12))
@@ -268,15 +266,16 @@ class SpecSimulator():
 
 
                 # spectrumPX
-                plt.figure(figsize=(24, 12))
-                files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")[:10]
-                for i, file in enumerate(files):
-                    title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
-                    spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrumPX/{file}")
-                    plt.plot(self.xpixels, spec, label=', '.join(title))
-                plt.legend()
-                plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrumPX.png")
-                plt.close()
+                if self.spectroData:
+                    plt.figure(figsize=(24, 12))
+                    files = os.listdir(f"{self.output_dir}/{self.save_fold}/spectrumPX")[:10]
+                    for i, file in enumerate(files):
+                        title = [self.variable_params['TARGET'][i]] + [f"{var}={self.variable_params[var][i]:.2f}" for var in self.variable_params.keys() if var!='TARGET' and var[:4]=="ATM_"]
+                        spec = np.load(f"{self.output_dir}/{self.save_fold}/spectrumPX/{file}")
+                        plt.plot(self.xpixels, spec, label=', '.join(title))
+                    plt.legend()
+                    plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/spectrumPX.png")
+                    plt.close()
 
 
     def makeSim(self, num_simu, updateParams=True, giveSpectrum=None, with_noise=True):
@@ -306,7 +305,7 @@ class SpecSimulator():
         self.ctt.o(f"Blank simulate", rank="Full")
         self.ctt.o(f"Init simulate", rank="BlankS")
         spectrogram_data = np.zeros((self.Ny, self.Nx), dtype="float32")
-        spectro_deconv = np.zeros((self.Ny, self.Nx), dtype="float32")
+        if self.spectroData: spectro_deconv = np.zeros((self.Ny, self.Nx), dtype="float32")
         spectrogram_data_RGB = np.zeros((self.Ny, self.Nx, 3), dtype="float32") if self.colorSimu else None
         self.ctt.c(f"Init simulate")
         
@@ -341,7 +340,7 @@ class SpecSimulator():
 
                 func_amp = interp1d(X_p, Amp, kind='linear', bounds_error=False, fill_value=0.)
                 yamp = func_amp(self.xpixels)     
-                spectro_deconv[int(self.R0[1])] = yamp
+                if self.spectroData: spectro_deconv[int(self.R0[1])] = yamp
 
             self.ctt.c(f"Building PSF cube")
         self.ctt.c(f"Blank simulate")
@@ -400,12 +399,15 @@ class SpecSimulator():
             np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
             if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
             spectrum_to_save = (spectrum * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
-            spectro_deconv_to_save = (spectro_deconv * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
             np.save(f"{self.output_dir}/{self.save_fold}/spectrum/spectrum_{num_simu:0{self.len_simu}}.npy", spectrum_to_save.astype(np.float32))
-            np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
-            np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
             np.save(f"{self.output_dir}/{self.save_fold}/opa/opa_{num_simu:0{self.len_simu}}.npy", np.array([self.ATM_OZONE, self.ATM_PWV, self.ATM_AEROSOLS]).astype(np.float32))
 
+            # Save spectro data if wanted
+            if self.spectroData:
+                spectro_deconv_to_save = (spectro_deconv * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
+                np.save(f"{self.output_dir}/{self.save_fold}/spectro/spectro_{num_simu:0{self.len_simu}}.npy", spectro_deconv_to_save.astype(np.float32))
+                np.save(f"{self.output_dir}/{self.save_fold}/spectrumPX/spectrumPX_{num_simu:0{self.len_simu}}.npy", np.sum(spectro_deconv_to_save, axis=0).astype(np.float32))
+            
         self.ctt.c(f"Save npy")
 
         if giveSpectrum is None : return data_image, spectrum
@@ -502,12 +504,12 @@ class SpecSimulator():
             self.historic_params[param] = value
             self.__setattr__(param, value)
 
-        # Les variables d'args de la psf function, on s'occupe ici des variation des paramètres de moffat
-        for param, value in self.hp.vparams.items():
+        # # Les variables d'args de la psf function, on s'occupe ici des variation des paramètres de moffat
+        # for param, value in self.hp.vparams.items():
 
-            if self.verbose > 1: print(f"Set args params {c.m}{param}{c.d} to {c.m}{value}{c.d}")
-            self.historic_params[param] = value
-            self.variable_params[param] = np.random.uniform(*value, self.nb_simu)
+        #     if self.verbose > 1: print(f"Set args params {c.m}{param}{c.d} to {c.m}{value}{c.d}")
+        #     self.historic_params[param] = value
+        #     self.variable_params[param] = np.random.uniform(*value, self.nb_simu)
 
 
 
@@ -741,6 +743,8 @@ class SpecSimulator():
         d *= self.hp.CCD_GAIN
 
         # Poisson noise
+        dmin = np.min(d)
+        if dmin < 0 : d += np.abs(dmin) * 1.1
         noisy = np.random.poisson(d).astype(np.float32)
         # Add read-out noise is available
         if self.hp.cparams["CCD_READ_OUT_NOISE"] is not None:

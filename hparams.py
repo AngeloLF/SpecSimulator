@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, json
 import numpy as np
 import coloralf as c
 import utils_spec.psf_func as pf
@@ -165,7 +165,7 @@ class Hparams():
         "auxtel" : {
 
             # Simu parameters
-            "SIM_NX" : 8000,
+            "SIM_NX" : 4096,
             "SIM_NY" : 512,
             "R0" : [256, 256],
 
@@ -189,12 +189,47 @@ class Hparams():
             "CCD_PIXEL2ARCSEC" : 0.0952,  # pixel size in arcsec
             "CCD_MAXADU" : 60000,  # approximate maximum ADU output of the CCD
             "CCD_GAIN" : 1.3,  # electronic gain : elec/ADU
-            "CCD_REBIN" : 1,  # rebinning of the image in pixel
+            "CCD_REBIN" : 2,  # rebinning of the image in pixel
             "DISTANCE2CCD" : 187.1,  # distance between hologram and CCD in mm
             "DISTANCE2CCD_ERR" : 0.05,  # uncertainty on distance between hologram and CCD in mm
 
             # Disperser
             "DISPERSER" : "holo4_003",
+        },
+
+        "auxtelqn" : {
+
+            # Simu parameters
+            "SIM_NX" : 4096,
+            "SIM_NY" : 512,
+            "R0" : [256, 256],
+
+            # Instrument characteristics
+            "THROUGHPUT" : "AuxTelThroughput/multispectra_holo4_003_HD142331_AuxTel_throughput.txt",
+            "OBS_NAME" : 'LSST',
+            "OBS_ALTITUDE" : 2.66299616375123,
+            "OBS_LATITUDE" : '-30 14 40.7',
+            "OBS_SURFACE" : 9636.0, 
+            "OBS_EPOCH" : "J2000.0",
+            "OBS_OBJECT_TYPE" : 'STAR',  # To choose between STAR, HG-AR, MONOCHROMATOR
+            "OBS_FULL_INSTRUMENT_TRANSMISSON" : 'multispectra_holo4_003_HD142331_AuxTel_throughput.txt',
+            "OBS_TRANSMISSION_SYSTEMATICS" : 0.005,
+            "OBS_CAMERA_ROTATION" : 0,  # Camera (x,y) rotation angle with respect to (north-up, east-left) system in degrees
+            "OBS_CAMERA_DEC_FLIP_SIGN" : 1,  # Camera (x,y) flip signs with respect to (north-up, east-left) system
+            "OBS_CAMERA_RA_FLIP_SIGN" : 1,  # Camera (x,y) flip signs with respect to (north-up, east-left) system
+            "OBS_PRESSURE" : 731.5,
+
+            # CCD characteristics
+            "CCD_PIXEL2MM" : 10e-3,  # pixel size in mm
+            "CCD_PIXEL2ARCSEC" : 0.0952,  # pixel size in arcsec
+            "CCD_MAXADU" : 60000,  # approximate maximum ADU output of the CCD
+            "CCD_GAIN" : 1.3,  # electronic gain : elec/ADU
+            "CCD_REBIN" : 2,  # rebinning of the image in pixel
+            "DISTANCE2CCD" : 187.1,  # distance between hologram and CCD in mm
+            "DISTANCE2CCD_ERR" : 0.05,  # uncertainty on distance between hologram and CCD in mm
+
+            # Disperser
+            "DISPERSER" : "blue300lpmm_qn1",
         }
     }
 
@@ -282,12 +317,31 @@ class Hparams():
         self.output_dir = output_simu_dir
         self.output_fold = output_simu_fold if "f" not in self.argv else self.argv["f"]
 
-
+        # INIT ALL PARAMETERS
         self.init_target_set(target_set)
         self.init_telescope(telescope)
         self.init_psf_function(psf)
         self.init_var_params(var_params)
         self.init_nb_simu(nsimu)
+
+        # UPDATE IF REBIN != 1
+        if self.CCD_REBIN != 1:
+
+            print(f"\n{c.g}INFO : CCD_REBIN != 1, update of some parameters ...{c.d}")
+            self.oldSIM_NX = self.SIM_NX
+            self.oldSIM_NY = self.SIM_NY
+            self.oldR0 = self.R0.copy()
+
+            self.SIM_NX = int(self.SIM_NX // self.CCD_REBIN)
+            self.SIM_NY = int(self.SIM_NY // self.CCD_REBIN)
+            self.R0[0] = int(self.R0[0] // self.CCD_REBIN)
+            self.R0[1] = int(self.R0[1] // self.CCD_REBIN)
+            self.CCD_PIXEL2MM *= self.CCD_REBIN
+            self.CCD_PIXEL2ARCSEC *= self.CCD_REBIN
+
+            print(f"SIM_NX : {c.lk}{self.oldSIM_NX}{c.d} -> {self.SIM_NX}")
+            print(f"SIM_NY : {c.lk}{self.oldSIM_NY}{c.d} -> {self.SIM_NY}")
+            print(f"R0     : {c.lk}{self.oldR0}{c.d} -> {self.R0}")
 
 
 
@@ -312,14 +366,14 @@ class Hparams():
 
         # Def of target set
         if target_set is not None and "set" in self.argv.keys():
-            print(f"{c.r}WARNING [Hparams.py] : {c.ti}target_set{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
+            print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}target_set{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
             target_set = self.argv["set"]
 
         elif target_set is None and "set" in self.argv.keys():
             target_set = self.argv["set"]
 
         else:
-            print(f"{c.y}INFO [Hparams.py] : {c.ti}target_set{c.ri} is not set, default {c.ti}set0{c.ri} (witch containt 20 calspecs){c.d}")
+            print(f"\n{c.y}INFO [Hparams.py] : {c.ti}target_set{c.ri} is not set, default {c.ti}set0{c.ri} (witch containt 20 calspecs){c.d}")
             target_set = "set0"
 
         print(f"{c.g}INFO : {c.ti}target_set{c.ri} set to {c.ti}{target_set}{c.ri}{c.d}")
@@ -333,14 +387,14 @@ class Hparams():
 
         # Def of telescope
         if telescope is not None and "tel" in self.argv.keys():
-            print(f"{c.r}WARNING [Hparams.py] : {c.ti}telescope{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
+            print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}telescope{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
             telescope = self.argv["tel"]
 
         elif telescope is None and "tel" in self.argv.keys():
             telescope = self.argv["tel"]
 
         else:
-            print(f"{c.y}INFO [Hparams.py] : {c.ti}telescope{c.ri} is not set, default {c.ti}ctio{c.ri}{c.d}")
+            print(f"\n{c.y}INFO [Hparams.py] : {c.ti}telescope{c.ri} is not set, default {c.ti}ctio{c.ri}{c.d}")
             telescope = "ctio"
 
         
@@ -366,14 +420,14 @@ class Hparams():
 
         # Def of telescope
         if psf is not None and "psf" in self.argv.keys():
-            print(f"{c.r}WARNING [Hparams.py] : {c.ti}psf{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
+            print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}psf{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
             psf = self.argv["psf"]
 
         elif psf is None and "psf" in self.argv.keys():
             psf = self.argv["psf"]
 
         else:
-            print(f"{c.y}INFO [Hparams.py] : {c.ti}psf{c.ri} is not set, default {c.ti}moffat2d{c.ri}{c.d}")
+            print(f"\n{c.y}INFO [Hparams.py] : {c.ti}psf{c.ri} is not set, default {c.ti}moffat2d{c.ri}{c.d}")
             psf = "moffat2d"
 
         print(f"{c.g}INFO : {c.ti}psf function{c.ri} set to {c.ti}{psf}{c.ri}{c.d}")
@@ -388,14 +442,14 @@ class Hparams():
 
         # Def of telescope
         if nsimu is not None and "nsimu" in self.argv.keys():
-            print(f"{c.r}WARNING [Hparams.py] : {c.ti}nsimu{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
+            print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}nsimu{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
             nsimu = int(self.argv["nsimu"])
 
         elif nsimu is None and "nsimu" in self.argv.keys():
             nsimu = int(self.argv["nsimu"])
 
         else:
-            print(f"{c.y}INFO [Hparams.py] : {c.ti}nsimu{c.ri} is not set, default {c.ti}10{c.ri}{c.d}")
+            print(f"\n{c.y}INFO [Hparams.py] : {c.ti}nsimu{c.ri} is not set, default {c.ti}10{c.ri}{c.d}")
             nsimu = 10
 
         print(f"{c.g}INFO : {c.ti}nsimu{c.ri} set to {c.ti}{nsimu}{c.ri}{c.d}")
@@ -432,9 +486,35 @@ class Hparams():
                     self.vparams[k] = v
 
                 else:
-                    print(f"{c.r}INFO : le parametre variable {k} n'est pas utilisé par n'est pas dans les __PARAMS de Hparams{c.d}")
+                    print(f"{c.r}INFO : le parametre variable {k} n'est pas utilisé car n'est pas dans les __PARAMS de Hparams{c.d}")
 
 
+    def save(self, path=None, file="hparams", debug=False):
+
+        if path is None:
+            path = f"{self.output_path}/{self.output_dir}/{self.output_fold}"
+
+        dico = dict()
+
+        for p in dir(self):
+
+            if p not in ['LAMBDAS', 'psf'] and not "__" in p and not callable(getattr(self, p)):
+
+                dico[p] = getattr(self, p)
+                if debug : print(f"\n{c.m}{p}{c.d} : {getattr(self, p)}")
+
+
+        with open(f"{path}/{file}.json", 'w') as f:
+            json.dump(dico, f, indent=4)
+
+
+
+if __name__ == "__main__":
+
+    vp = {"A":[0.5, 2.0], "ROTATION_ANGLE":[-1.0, 1.0], "arg.0.0":[2.0, 8.0], "ccbb":[0.0, 999.0]}
+
+    hp = Hparams(var_params=vp)
+    hp.save(path=".", debug=True)
 
 
 

@@ -52,7 +52,7 @@ def get_theta0(x0, y0, CCD_size, CCD_PIXEL2ARCSEC, a=0.0, return_Cp=False):
         signOf_Cp_C[yp < yc] *= -1
 
 
-    d_S0_C = signOf_S0_C * np.sqrt((x0-xc)**2 + (y0-yc)**2)
+    d_S0_C = signOf_S0_C * np.sqrt((x0-xp)**2 + (y0-yp)**2)
     d_Cp_C = signOf_Cp_C * np.sqrt((xp-xc)**2 + (yp-yc)**2)
 
     ksi = d_Cp_C * pix2rad
@@ -143,13 +143,14 @@ def test_theta0_2d(CCD_size=[1024, 128], CCD_PIXEL2ARCSEC=0.401, CCD_PIXEL2MM=24
     y = np.arange(sy)
     xx, yy = np.meshgrid(x, y)
 
-    a = 10.0
+    a = 23.0
 
     plt.figure()
 
     theta0 = get_theta0(xx, yy, CCD_size, CCD_PIXEL2ARCSEC, a) * 180 / np.pi * 3600
+    theta0_spec = (xx - CCD_size[0]/2) * CCD_PIXEL2ARCSEC
 
-    plt.imshow(theta0, cmap="coolwarm")
+    plt.imshow(theta0-theta0_spec, cmap="coolwarm")
     plt.colorbar(label="theta0 (arcsec)") 
     plt.show()
 
@@ -199,9 +200,7 @@ class MyDisperser():
             filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/{filedef}"
             a = np.loadtxt(filename)
             self.N_x, self.N_y, N_data = a.T
-            if self.hp.CCD_REBIN > 1:
-                self.N_x /= self.hp.CCD_REBIN
-                self.N_y /= self.hp.CCD_REBIN
+            self.rebin()
             self.N_interp = interpolate.CloughTocher2DInterpolator((self.N_x, self.N_y), N_data)
             self.N_fit = self.fit_poly2d(self.N_x, self.N_y, N_data, order=2)
 
@@ -210,8 +209,9 @@ class MyDisperser():
             print(f"{c.y}INFO [load_disperser.py] : use N.txt for load the grating of {self.hp.DISPERSER}{c.d}")
             filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/N.txt"
             N, N_err = np.loadtxt(filename)
-            self.N_x = np.arange(0, self.hp.SIM_NX)
-            self.N_y = np.arange(0, self.hp.SIM_NY)
+            self.N_x = np.arange(0, self.hp.SIM_NX).astype(float)
+            self.N_y = np.arange(0, self.hp.SIM_NY).astype(float)
+            self.rebin()
             self.N_interp = lambda x, y: N
             self.N_fit = lambda x, y: N
 
@@ -220,6 +220,17 @@ class MyDisperser():
         for order, A in enumerate(As):
             if A != 0.0 : self.dist_along_disp_axis.append(self.grating_lambda_to_pixel(lambdas, x0=x0, order=order))
             else : self.dist_along_disp_axis.append(None)
+
+
+
+    def rebin(self):
+
+        if self.hp.CCD_REBIN > 1:
+
+            self.N_x /= self.hp.CCD_REBIN
+            self.N_y /= self.hp.CCD_REBIN
+
+
 
     def grating_lambda_to_pixel(self, lambdas, x0, alpha=0.0, order=1):
 
