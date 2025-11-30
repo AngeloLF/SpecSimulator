@@ -178,6 +178,12 @@ class MyDisperser():
         a = np.loadtxt(filename)
         if a.T.shape[0] == 2 : l, t = a.T
         else : l, t, e = a.T
+
+        ### test stardice weirdos
+        if np.sum(t < 0) > 0:
+            print(f"{c.y}WARNING : when load disperser, ratio_order_2over1 containt negative values -> cut to 0{c.d}")
+            t[t < 0] = 0
+
         self.ratio_order_2over1 = interpolate.interp1d(l, t, bounds_error=False, kind="linear", fill_value="extrapolate")
 
         filename = f"{self.hp.DISPERSER_DIR}/{self.hp.DISPERSER}/ratio_order_3over2.txt"

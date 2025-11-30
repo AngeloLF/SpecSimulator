@@ -6,6 +6,22 @@ import utils_spec.psf_func as pf
 
 
 
+
+def HparamsFromJson(jsonfile):
+
+
+    with open(jsonfile, "r") as f:
+        hp = json.load(f)
+
+    return Hparams(hp["telescope"], hp["target_set"], hp["psf_function"], hp["vparams"], hp["nsimu"], hp["with_noise"],
+        [hp["LAMBDA_MIN"], hp["LAMBDA_MAX"]], hp["LAMBDA_STEP"], hp["SPECTRACTOR_ATMOSPHERE_SIM"], hp["FLAM_TO_ADURATE"],
+        disperser_dir=hp["DISPERSER_DIR"], throughput_dir=hp["THROUGHPUT_DIR"], 
+        output_path=".", output_dir=hp["output_path"], output_simu_dir=hp["output_dir"], output_simu_fold=hp["output_fold"])
+
+
+
+
+
 class Hparams():
 
     """
@@ -312,8 +328,12 @@ class Hparams():
 
         # SOME PATHS and DIRS
         self.output_path = output_path + "/" + output_dir
-        if output_dir not in os.listdir(output_path):
-            os.mkdir(self.output_path)
+        try:
+            if output_dir not in os.listdir(output_path):
+                os.mkdir(self.output_path)
+        except Exception as e:
+            print(f"INFO warning : {e}...")
+
         self.output_dir = output_simu_dir
         self.output_fold = output_simu_fold if "f" not in self.argv else self.argv["f"]
 
@@ -372,14 +392,14 @@ class Hparams():
         elif target_set is None and "set" in self.argv.keys():
             target_set = self.argv["set"]
 
-        else:
+        elif target_set is None:
             print(f"\n{c.y}INFO [Hparams.py] : {c.ti}target_set{c.ri} is not set, default {c.ti}set0{c.ri} (witch containt 20 calspecs){c.d}")
             target_set = "set0"
 
         print(f"{c.g}INFO : {c.ti}target_set{c.ri} set to {c.ti}{target_set}{c.ri}{c.d}")
         self.target_set = target_set
 
-        self.target_name = self.__TARGET_SETS[self.target_set]
+        self.target_name = self.__TARGET_SETS[self.target_set.lower()]
 
 
 
@@ -393,7 +413,7 @@ class Hparams():
         elif telescope is None and "tel" in self.argv.keys():
             telescope = self.argv["tel"]
 
-        else:
+        elif telescope is None:
             print(f"\n{c.y}INFO [Hparams.py] : {c.ti}telescope{c.ri} is not set, default {c.ti}ctio{c.ri}{c.d}")
             telescope = "ctio"
 
@@ -402,7 +422,7 @@ class Hparams():
         self.telescope = telescope
 
         # set all parameters from __TELESCOPES to hparams
-        for k, v in self.__TELESCOPES[self.telescope].items():
+        for k, v in self.__TELESCOPES[self.telescope.lower()].items():
             setattr(self, k, v)
 
         # checks if the required parameters are present
@@ -426,14 +446,14 @@ class Hparams():
         elif psf is None and "psf" in self.argv.keys():
             psf = self.argv["psf"]
 
-        else:
+        elif psf is None:
             print(f"\n{c.y}INFO [Hparams.py] : {c.ti}psf{c.ri} is not set, default {c.ti}moffat2d{c.ri}{c.d}")
             psf = "moffat2d"
 
         print(f"{c.g}INFO : {c.ti}psf function{c.ri} set to {c.ti}{psf}{c.ri}{c.d}")
         self.psf_function = psf
 
-        self.psf = self.__PSF_FUNCTIONS[self.psf_function]
+        self.psf = self.__PSF_FUNCTIONS[self.psf_function.lower()]
 
 
 
@@ -448,7 +468,7 @@ class Hparams():
         elif nsimu is None and "nsimu" in self.argv.keys():
             nsimu = int(self.argv["nsimu"])
 
-        else:
+        elif nsimu is None:
             print(f"\n{c.y}INFO [Hparams.py] : {c.ti}nsimu{c.ri} is not set, default {c.ti}10{c.ri}{c.d}")
             nsimu = 10
 

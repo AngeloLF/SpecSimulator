@@ -310,7 +310,7 @@ class SpecSimulator():
         self.ctt.c(f"Init simulate")
         
         self.ctt.o(f"Construction spectrum", rank="BlankS")
-        spectrum = self.simulate_spectrum() * self.A if giveSpectrum is None else giveSpectrum / hparameters.CCD_GAIN / self.EXPOSURE
+        spectrum = self.simulate_spectrum() * self.A if giveSpectrum is None else giveSpectrum / self.hp.CCD_GAIN / self.EXPOSURE
         self.ctt.c(f"Construction spectrum")
 
         allXc = np.array([])
