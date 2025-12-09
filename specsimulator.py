@@ -198,7 +198,8 @@ class SpecSimulator():
                 img = np.load(f"{self.output_dir}/{self.save_fold}/image/{file}")
                 plt.imshow(np.log10(img+1), cmap='gray', origin='lower')
                 plt.title(self.variable_params['TARGET'][i])
-                plt.xlabel(r"$\lambda$ (nm)")
+                plt.xlabel(f"Axis 0")
+                plt.ylabel(f"Axis 1")
                 plt.savefig(f"{self.output_dir}/{self.save_fold}/divers/image_single_{i}.png")
                 plt.close()
 

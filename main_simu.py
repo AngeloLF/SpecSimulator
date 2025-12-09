@@ -22,7 +22,7 @@ var_params_atm = {
 var_params = {
 	"train" : {
 		'arg.0.0' : [3.0, 8.0],
-		'ROTATION_ANGLE' : [-2.0, 2.0],
+		'ROTATION_ANGLE' : [-0.1, 0.1],
 		"A" : [0.8, 1.2],
 	},
 	"test" : {

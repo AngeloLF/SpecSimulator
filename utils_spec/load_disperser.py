@@ -60,7 +60,34 @@ def get_theta0(x0, y0, CCD_size, CCD_PIXEL2ARCSEC, a=0.0, return_Cp=False):
 
 
     if return_Cp : return theta0, (xp, yp)
-    else : return theta0 
+    else : return theta0
+
+
+def get_theta0(x0, y0, CCD_size, CCD_PIXEL2ARCSEC, a=0.0):
+    """ Return the incident angle on the disperser in radians, with respect to the disperser normal and the X axis.
+
+    Parameters
+    ----------
+    x0: float, tuple, list
+        The order 0 position in the full non-rotated image.
+
+    Returns
+    -------
+    theta0: float
+        The incident angle in radians
+
+    Examples
+    --------
+    >>> get_theta0((parameters.CCD_IMSIZE/2,parameters.CCD_IMSIZE/2))
+    0.0
+    >>> get_theta0(parameters.CCD_IMSIZE/2)
+    0.0
+    """
+    pix_to_rad = CCD_PIXEL2ARCSEC * np.pi / (180. * 3600.)
+    if isinstance(x0, (list, tuple, np.ndarray)):
+        return (x0[0] - CCD_size[0] / 2) * pix_to_rad
+    else:
+        return (x0 - CCD_size[0] / 2) * pix_to_rad
 
 
 
@@ -243,10 +270,12 @@ class MyDisperser():
         lambdas = np.copy(lambdas)
         # theta0 = (x0[0] - self.hp.CCD_IMSIZE / 2) * self.hp.CCD_PIXEL2ARCSEC * self.hp.CCD_ARCSEC2RADIANS
         # theta0 = (x0[0]) * hparameters.CCD_PIXEL2ARCSEC * hparameters.CCD_ARCSEC2RADIANS
-        theta0 = get_theta0(x0[0], x0[1], [self.hp.SIM_NX, self.hp.SIM_NY], self.hp.CCD_PIXEL2ARCSEC, a=alpha, return_Cp=False)
+        theta0 = get_theta0(x0[0], x0[1], [self.hp.SIM_NX, self.hp.SIM_NY], self.hp.CCD_PIXEL2ARCSEC, a=alpha)
 
         theta = np.arcsin(np.clip(order * lambdas * 1e-6 * self.N(x0) + np.sin(theta0),-1, 1))
         deltaX = self.hp.DISTANCE2CCD * (np.tan(theta) - np.tan(theta0)) / self.hp.CCD_PIXEL2MM
+
+        print(f"distance 2 ccd : {self.hp.DISTANCE2CCD }")
 
         return deltaX
 

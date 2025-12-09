@@ -105,6 +105,43 @@ class Hparams():
 
     __TELESCOPES = {
 
+        # alf
+        "alf" : {
+
+            # Simu parameters
+            "SIM_NX" : 1024,
+            "SIM_NY" : 128,
+            "R0" : [64, 64],
+
+            # Instrument characteristics
+            "THROUGHPUT" : "CTIOThroughput/ctio_throughput_300517_v1.txt",
+            "TEL_NAME" : "ctio",
+            "OBS_NAME" : 'CTIO',
+            "OBS_ALTITUDE" : 2.200,  # CTIO altitude in k meters from astropy package (Cerro Pachon)
+            "OBS_LATITUDE" : '-30 10 07.90',  # CTIO latitude
+            "OBS_SURFACE" : 6361,  # Effective surface of the telescope in cm**2 accounting for obscuration
+            "OBS_EPOCH" : "J2000.0",
+            "OBS_OBJECT_TYPE" : 'STAR',  # To choose between STAR, HG-AR, MONOCHROMATOR
+            "OBS_FULL_INSTRUMENT_TRANSMISSON" : 'ctio_throughput_300517_v1.txt', # Full instrument transmission file
+            "OBS_TRANSMISSION_SYSTEMATICS" : 0.005,
+            "OBS_CAMERA_ROTATION" : 180,  # Camera (x,y) rotation angle with respect to (north-up, east-left) system in degrees
+            "OBS_CAMERA_DEC_FLIP_SIGN" : 1,  # Camera (x,y) flip signs with respect to (north-up, east-left) system
+            "OBS_CAMERA_RA_FLIP_SIGN" : -1,  # Camera (x,y) flip signs with respect to (north-up, east-left) system
+            "OBS_PRESSURE" : 784.0, # 784.0
+
+            # CCD characteristics
+            "CCD_PIXEL2MM" : 24e-3,  # pixel size in mm
+            "CCD_PIXEL2ARCSEC" : 0.401,  # pixel size in arcsec
+            "CCD_MAXADU" : 60000,  # approximate maximum ADU output of the CCD
+            "CCD_GAIN" : 3.,  # electronic gain : elec/ADU
+            "CCD_REBIN" : 1,  # rebinning of the image in pixel
+            "DISTANCE2CCD" : 55.45,  # distance between hologram and CCD in mm
+            "DISTANCE2CCD_ERR" : 0.2,  # uncertainty on distance between hologram and CCD in mm
+
+            # Disperser
+            "DISPERSER" : "HoloAmAg",
+        },
+
         # CTIO
         "ctio" : {
 
