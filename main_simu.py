@@ -8,14 +8,14 @@ var_params_atm = {
 	"train" : {
 		"ATM_AEROSOLS" : [0.1, 0.8],
 		"ATM_OZONE" : [250.0, 350.0],
-		"ATM_PWV" : [0.0, 10.0],
+		"ATM_PWV" : [2.0, 10.0],
 		"ATM_AIRMASS" : [1.2, 2.0]
 	},
 	"test" : {
 		"ATM_AEROSOLS" : [0.0, 0.9],
 		"ATM_OZONE" : [220.0, 380.0],
-		"ATM_PWV" : [0.0, 15.0],
-		"ATM_AIRMASS" : [1.0, 2.5]
+		"ATM_PWV" : [0.0, 12.0],
+		"ATM_AIRMASS" : [1.0, 2.2]
 	}
 }
 

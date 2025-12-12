@@ -322,7 +322,8 @@ class SpecSimulator():
             # Dispersion law
             self.ctt.o(f"Compute dispersion & params", rank="BlankS")
             if self.with_adr : adr_x, adr_y = self.loading_adr()
-            else : adr_x, adr_y = 0.0, 0.0 
+            else : adr_x, adr_y = 0.0, 0.0
+
             Amp = A * tr(self.lambdas) * spectrum
             X_p = self.disperser.dist_along_disp_axis[order]                                             + adr_x + self.R0[0]
             X_c = self.disperser.dist_along_disp_axis[order] * np.cos(self.ROTATION_ANGLE * np.pi / 180) + adr_x + self.R0[0]
@@ -667,15 +668,19 @@ class SpecSimulator():
 
 
 
-    def loading_adr(self, dispersion_axis_angle=0):
+    def loading_adr(self, dispersion_axis_angle=0, lambdas=None):
         """
         Méthode pour load l'ADR
         """
 
         if self.with_adr:
 
+            if lambdas is None : lambdas = self.lambdas
+
             ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, self.hp.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
-            adr_ra, adr_dec = adr_calib(self.hp, self.lambdas, ADR_PARAMS, self.hp.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
+            adr_ra, adr_dec = adr_calib(self.hp, lambdas, ADR_PARAMS, self.hp.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
+
+            print(ADR_PARAMS)
 
             # flip_and_rotate_radec_vector_to_xy_vector of 
             flip = np.array([[self.hp.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, self.hp.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
@@ -704,10 +709,9 @@ class SpecSimulator():
         else:
             adr_x = np.zeros_like(self.disperser.dist_along_disp_axis)
             adr_y = np.zeros_like(self.disperser.dist_along_disp_axis)
-
-
         
         return adr_x, adr_y
+
 
     def npy_save(self, dico, savefile):
 
