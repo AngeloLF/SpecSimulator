@@ -680,8 +680,6 @@ class SpecSimulator():
             ADR_PARAMS = [self.ADR_DEC, self.ADR_HOUR_ANGLE, self.ATM_TEMPERATURE, self.hp.OBS_PRESSURE, self.ATM_HUMIDITY, self.ATM_AIRMASS]
             adr_ra, adr_dec = adr_calib(self.hp, lambdas, ADR_PARAMS, self.hp.OBS_LATITUDE, lambda_ref=self.lambda_adr_ref)
 
-            print(ADR_PARAMS)
-
             # flip_and_rotate_radec_vector_to_xy_vector of 
             flip = np.array([[self.hp.OBS_CAMERA_RA_FLIP_SIGN, 0], [0, self.hp.OBS_CAMERA_DEC_FLIP_SIGN]], dtype=float)
             a = - self.hp.OBS_CAMERA_ROTATION * np.pi / 180 # minus sign as rotation matrix is apply on the right on the adr vector
