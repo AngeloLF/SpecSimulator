@@ -254,8 +254,6 @@ class MyDisperser():
             if A != 0.0 : self.dist_along_disp_axis.append(self.grating_lambda_to_pixel(lambdas, x0=x0, order=order))
             else : self.dist_along_disp_axis.append(None)
 
-        
-
 
 
     def rebin(self):
