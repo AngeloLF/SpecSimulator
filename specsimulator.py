@@ -90,7 +90,7 @@ class SpecSimulator():
             os.mkdir(f"{self.output_dir}/{self.save_fold}/imageRGB")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/divers")
             os.mkdir(f"{self.output_dir}/{self.save_fold}/opa")
-            if self.hp.telescope in ["auxtel"]:
+            if self.hp.telescope in ["auxtel", "auxtelqn"]:
                 os.mkdir(f"{self.output_dir}/{self.save_fold}/imageOrigin")
         
         # Order 0 coord.
@@ -399,14 +399,14 @@ class SpecSimulator():
 
         self.ctt.o(f"Save npy", rank="Full")
 
-        if self.hp.telescope == "auxtel":
+        if self.hp.telescope in ["auxtel", "auxtelqn"]:
             # data_image = data_image.T[::-1, ::-1]
             # for IA models, we need a small (like 128x1024) images.
-            self.savingFolders : np.save(f"{self.output_dir}/{self.save_fold}/imageOrigin/image_{num_simu:0{self.len_simu}}.npy", data_image)
+            if self.savingFolders : np.save(f"{self.output_dir}/{self.save_fold}/imageOrigin/image_{num_simu:0{self.len_simu}}.npy", data_image)
             data_image = data_image[::2, ::2] + data_image[1::2, ::2] + data_image[::2, 1::2] + data_image[1::2, 1::2]
 
         if self.savingFolders:
-
+        
             np.save(f"{self.output_dir}/{self.save_fold}/image/image_{num_simu:0{self.len_simu}}.npy", data_image)
             if self.colorSimu : np.save(f"{self.output_dir}/{self.save_fold}/imageRGB/imageRGB_{num_simu:0{self.len_simu}}.npy", data_image_RGB)
             spectrum_to_save = (spectrum * self.hp.CCD_GAIN * self.EXPOSURE).astype(np.float32)
