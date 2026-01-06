@@ -62,6 +62,13 @@ class SpecSimulator():
         if self.verbose >= 0: 
             print(f"{c.y}\nInitialisation of SpecSimulator at {c.d}{c.ly}{c.ti}{ctime()}{c.d}{c.d}")
 
+        # Init seed
+        if self.hp.seed is not None:
+            print(f"{c.y}Set seed for numpy to {self.hp.seed}{c.d}")
+            np.random.seed(self.hp.seed)
+        else:
+            print(f"{c.y}Spectractor not seeded{c.d}")
+
         # Define variables parameters for the simulation
         self.init_var_params()
         if self.no0 : self.A0 = 0.0

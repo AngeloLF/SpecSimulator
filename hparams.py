@@ -335,7 +335,7 @@ class Hparams():
 
 
 
-    def __init__(self, telescope=None, target_set=None, psf=None, var_params=dict(), nsimu=None, with_noise=True,
+    def __init__(self, telescope=None, target_set=None, psf=None, var_params=dict(), nsimu=None, with_noise=True, seed=None,
                  lambdas=[300, 1100], lambdas_step=1, atmo_model="getobsatmo", flam2adurate=1_067_400_516_204.6393,
                  disperser_dir="./SpecSimulator/datafile/dispersers",
                  throughput_dir="./SpecSimulator/datafile/throughput",
@@ -380,6 +380,7 @@ class Hparams():
         self.init_psf_function(psf)
         self.init_var_params(var_params)
         self.init_nb_simu(nsimu)
+        self.init_seed(seed)
 
         # UPDATE IF REBIN != 1
         if self.CCD_REBIN != 1:
@@ -511,6 +512,28 @@ class Hparams():
 
         print(f"{c.g}INFO : {c.ti}nsimu{c.ri} set to {c.ti}{nsimu}{c.ri}{c.d}")
         self.nsimu = nsimu
+
+
+
+
+    def init_seed(self, seed):
+
+        # Def of telescope
+        if seed is not None and "seed" in self.argv.keys():
+            print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}seed{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
+            seed = int(self.argv["seed"])
+
+        elif seed is None and "seed" in self.argv.keys():
+            seed = int(self.argv["seed"])
+
+        elif seed is None:
+            print(f"\n{c.y}INFO [Hparams.py] : {c.ti}seed{c.ri} is not set, default {c.ti}None{c.ri}{c.d}")
+            seed = None
+
+        print(f"{c.g}INFO : {c.ti}seed{c.ri} set to {c.ti}{seed}{c.ri}{c.d}")
+        self.seed = seed
+
+
 
 
     def init_var_params(self, var_params):
