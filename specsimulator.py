@@ -288,7 +288,7 @@ class SpecSimulator():
                     plt.close()
 
 
-    def makeSim(self, num_simu, updateParams=True, giveSpectrum=None, with_noise=True):
+    def makeSim(self, num_simu, updateParams=True, giveSpectrum=None, with_noise=True, for_analyse=False):
 
         ### set variable params
         self.ctt.o(f"set var params", rank="Full")
@@ -404,6 +404,10 @@ class SpecSimulator():
             self.ctt.c(f"noise")
         self.ctt.c(f"Image Computation")
 
+
+        if for_analyse:
+            return data_image, allXc, allYc
+
         self.ctt.o(f"Save npy", rank="Full")
 
         if self.hp.telescope in ["auxtel", "auxtelqn"]:
@@ -411,6 +415,8 @@ class SpecSimulator():
             # for IA models, we need a small (like 128x1024) images.
             if self.savingFolders : np.save(f"{self.output_dir}/{self.save_fold}/imageOrigin/image_{num_simu:0{self.len_simu}}.npy", data_image)
             data_image = data_image[::2, ::2] + data_image[1::2, ::2] + data_image[::2, 1::2] + data_image[1::2, 1::2]
+            allXc /= 2
+            allYc /= 2
 
         if self.savingFolders:
         
