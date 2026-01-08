@@ -13,6 +13,10 @@ def HparamsFromJson(jsonfile):
     with open(jsonfile, "r") as f:
         hp = json.load(f)
 
+    # If a dataset was created with a old version of Hparams
+    if not "seed" in hp.keys():
+        hp["seed"] = None
+
     return Hparams(hp["telescope"], hp["target_set"], hp["psf_function"], hp["vparams"], hp["nsimu"], hp["with_noise"], hp['seed'],
         [hp["LAMBDA_MIN"], hp["LAMBDA_MAX"]], hp["LAMBDA_STEP"], hp["SPECTRACTOR_ATMOSPHERE_SIM"], hp["FLAM_TO_ADURATE"],
         disperser_dir=hp["DISPERSER_DIR"], throughput_dir=hp["THROUGHPUT_DIR"], 
