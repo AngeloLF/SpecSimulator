@@ -531,7 +531,10 @@ class Hparams():
     def init_seed(self, seed):
 
         # Def of telescope
-        if seed is not None and "seed" in self.argv.keys():
+        if "seed" in self.argv.keys() and self.argv["seed"] == "None":
+            seed = None
+
+        elif seed is not None and "seed" in self.argv.keys():
             print(f"\n{c.r}WARNING [Hparams.py] : {c.ti}seed{c.ri} is define twice ; in argument of Hparams and in sys.argv -> sys.argv has priority{c.r}")
             seed = int(self.argv["seed"])
 
