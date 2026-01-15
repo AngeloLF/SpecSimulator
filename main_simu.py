@@ -74,6 +74,13 @@ else: # it's moffat by default
     var_params["train"]["arg.0.0"] = [3.0, 8.0]
     var_params["test"]["arg.0.0"] = [2.0, 10.0]
 
+# Variation of the argument "alpha" for moffat2d
+if "moffat2d_alpha_variation" in argv["__free__"]:
+    var_params["train"]["arg.1.0"] = [1.5, 2.5]
+    var_params["test"]["arg.1.0"] = [1.5, 2.5]
+
+# 
+
 
 
 

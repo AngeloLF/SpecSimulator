@@ -80,9 +80,9 @@ def gsa(x, y, x_c, y_c, timbre_size, c="r", ls="-", label=None):
 
 if __name__ == "__main__":
 
-    plt.figure(figsize=(6, 9))
+    plt.figure(figsize=(9, 9))
 
-    nbFunc = 2
+    nbFunc = 3
     x_c, y_c = 64, 64
     amplitude = 10000
 
@@ -106,9 +106,24 @@ if __name__ == "__main__":
         gsa(x, y, x_c, y_c, timbre_size)
 
 
+    # moffat alpha :
+    graph_num = len(gammas)
+    gamma = 3.0
+    alphas = [1.5, 2.0, 2.5]
+
+    for i, alpha in enumerate(alphas):
+        plt.subplot(nbFunc, len(alphas), graph_num + i + 1)
+        timbre_size = moffat2d_timbre(gamma, alpha)
+        plt.title(f"arg of alpha = {alpha}")
+        func = moffat2d_jit(xx, yy, amplitude, x_c, y_c, gamma, alpha)
+        plt.imshow(np.log10(func+1))
+        plt.xlabel(f"Flux : {np.sum(func)}")
+        gsa(x, y, x_c, y_c, timbre_size)
+
+
     # gaussian :
     stds = [3.0, 6.0, 9.0]
-    graph_num = len(gammas)
+    graph_num = len(gammas) + len(alphas)
 
     for i, std in enumerate(stds):
         plt.subplot(nbFunc, len(stds), graph_num + i + 1)
@@ -119,7 +134,7 @@ if __name__ == "__main__":
         plt.xlabel(f"Flux : {np.sum(func)}")
         gsa(x, y, x_c, y_c, timbre_size)
 
-
+    plt.tight_layout()
     plt.show()
 
 
