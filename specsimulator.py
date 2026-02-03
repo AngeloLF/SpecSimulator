@@ -439,7 +439,7 @@ class SpecSimulator():
 
 
 
-    def simulate_spectrum(self):    
+    def simulate_spectrum(self):
 
         self.ctt.o(f"load_atm", rank="sim spec")
         if self.with_atmosphere : self.atm = self.give_atm_transmission()
